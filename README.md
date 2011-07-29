@@ -102,5 +102,5 @@ Check out LICENSE.
 Other
 =====
 
-This library was written during [SpawnFest](http://spawnfest.com/).
+This library was written during [Spawnfest](http://spawnfest.com/), a 48 hour Erlang development competition.
 
