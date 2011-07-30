@@ -1,0 +1,12 @@
+{application, twilio,
+ [
+  {description, ""},
+  {vsn, git},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { twilio_app, []}},
+  {env, []}
+ ]}.
