@@ -37,8 +37,8 @@ generate(AccountSID, AuthToken, Capabilities, Opts) ->
     FullScopeString = string:join(ScopeStrings, " "),
 
     Claims = [
-        {"scope", FullScopeString},
-        {"iss", AccountSID},
+        {"scope", list_to_binary(FullScopeString)},
+        {"iss", list_to_binary(AccountSID)},
         {"exp", get_expiration(Opts)}
     ],
 
@@ -64,7 +64,7 @@ capability_to_scope_string({client_outgoing, ApplicationSID}, ClientName) ->
 capability_to_scope_string({event_stream, Params}, _ClientName) ->
     build_scope_string("stream", "subscribe", [{"path", "/2010-04-01/Events"} | Params]).
     
-%% @doc Builds a scope string of the form "scope:service:privelege?key=value&key2=value2".
+%% @doc Builds a scope string of the form `scope:service:privilege?key=value&key2=value2'.
 -spec build_scope_string(string(), string(), [{string(), string()}]) -> string().
 build_scope_string(Service, Privilege, Params) ->
     ParamsString = 
