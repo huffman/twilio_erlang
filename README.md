@@ -10,6 +10,25 @@ If you already have a web server setup and/or your own routing mechanisms you ca
 still use the `twilio` and `twiml` modules to access the twilio API and
 also format twiml responses.
 
+### twilio capabilities
+
+*BETA*
+
+Twilio Capability tokens tokens are described at 
+[http://www.twilio.com/docs/client/capability-tokens]
+
+```erlang
+AccountSID = "ACXXXXXXXXXXXXXXX",
+AuthToken = "secret",
+Capabilities = [{client_incoming, "tommy"}, {client_outgoing, "JJJJ"}],
+Opts = [{expires_after, 3600}], % 6 minutes
+Token = twilio_capabilities:generate(AccountSID, AuthToken, Capabilities, 
+Opts).
+<<"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZSI6WzExNSw5OSwxMTEsMTEyLDEwMSw1OCw5OSwxMDgsMTA1LDEwMSwxMTAsMTE2LDU4LDEwNSwxMTAsOTksMTExLDEwOSwxMDUsMTEwLDEwMyw2Myw5OSwxMDgsMTA1LDEwMSwxMTAsMTE2LDc4LDk3LDEwOSwxMDEsNjEsMTE2LDExMSwxMDksMTA5LDEyMSwzMiwxMTUsOTksMTExLDExMiwxMDEsNTgsOTksMTA4LDEwNSwxMDEsMTEwLDExNiw1OCwxMTEsMTE3LDExNiwxMDMsMTExLDEwNSwxMTAsMTAzLDYzLDk3LDExMiwxMTIsODMsMTA1LDEwMCw2MSw3NCw3NCw3NCw3NCwzOCw5OSwxMDgsMTA1LDEwMSwxMTAsMTE2LDc4LDk3LDEwOSwxMDEsNjEsMTE2LDExMSwxMDksMTA5LDEyMV0sImlzcyI6WzY1LDY3LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4XSwiZXhwIjoxMzI3OTk3NzIxfQ==.l6HkGKuiPahjEJpRrqfG5ZLTdcqwHpfA5UFwKVPEEuE=">>
+```
+
+Look at the documentation and source for more information.
+
 Usage
 =====
 
