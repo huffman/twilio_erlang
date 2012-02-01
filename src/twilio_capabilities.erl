@@ -37,8 +37,8 @@ generate(AccountSID, AuthToken, Capabilities, Opts) ->
     FullScopeString = string:join(ScopeStrings, " "),
 
     Claims = [
-        {"scope", list_to_binary(FullScopeString)},
-        {"iss", list_to_binary(AccountSID)},
+        {"scope", unicode:characters_to_binary(FullScopeString, utf8)},
+        {"iss", unicode:characters_to_binary(AccountSID, utf8)},
         {"exp", get_expiration(Opts)}
     ],
 
