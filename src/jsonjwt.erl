@@ -21,9 +21,8 @@ encode(Claims, Key, Algorithm) ->
     HeaderJSON = iolist_to_binary(mochijson2:encode({struct, Header})),
     HeaderEncoded = base64:encode(HeaderJSON),
 
-    MessageJSON = iolist_to_binary(mochijson2:encode({struct, Claims})),
+    MessageJSON = iolist_to_binary(mochijson2:encode({struct, make_binary(Claims)})),
     MessageEncoded = base64:encode(MessageJSON),
-
     case Algorithm of
         "none" ->
             Signature = <<"">>;
@@ -35,3 +34,10 @@ encode(Claims, Key, Algorithm) ->
     SignatureEncoded = base64:encode(Signature),
     <<HeaderEncoded/binary, ".", MessageEncoded/binary, ".", SignatureEncoded/binary>>.
 
+make_binary(List) -> make_bin2(List, []).
+
+make_bin2([], Acc) -> lists:reverse(Acc);
+make_bin2([{K, V} | Rest], Acc) when is_list(V) ->
+    make_bin2(Rest, [{list_to_binary(K), list_to_binary(V)} | Acc]);
+make_bin2([{K, V} | Rest], Acc) when is_integer(V) ->
+    make_bin2(Rest, [{list_to_binary(K), list_to_binary(integer_to_list(V))} | Acc]).

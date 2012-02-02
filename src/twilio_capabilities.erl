@@ -34,7 +34,7 @@ generate(AccountSID, AuthToken, Capabilities, Opts) ->
 
     ScopeStrings = [capability_to_scope_string(Cap, ClientName) || Cap <- Capabilities],
 
-    FullScopeString = string:join(ScopeStrings, " "),
+    FullScopeString = string:join(ScopeStrings, " ") ++ "&appParams=",
 
     Claims = [
         {"scope", FullScopeString},
@@ -63,11 +63,11 @@ capability_to_scope_string({client_outgoing, ApplicationSID}, ClientName) ->
     build_scope_string("client", "outgoing", [{"appSid", ApplicationSID} | Params]);
 capability_to_scope_string({event_stream, Params}, _ClientName) ->
     build_scope_string("stream", "subscribe", [{"path", "/2010-04-01/Events"} | Params]).
-    
+
 %% @doc Builds a scope string of the form "scope:service:privelege?key=value&key2=value2".
 -spec build_scope_string(string(), string(), [{string(), string()}]) -> string().
 build_scope_string(Service, Privilege, Params) ->
-    ParamsString = 
+    ParamsString =
     case Params of
         [] ->
             "";
@@ -79,10 +79,18 @@ build_scope_string(Service, Privilege, Params) ->
 
     "scope:" ++ Service ++ ":" ++ Privilege ++ ParamsString.
 
-
-
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+
+generate_capabilities_test() ->
+    ?assertEqual("eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9." ++
+                 "yJzY29wZSI6InNjb3BlOmNsaWVudDpvdXRnb2luZz9hcHBTaWQ9QVBhYmU3NjUwZjY1NGZjMzQ2NTVmYzgxYWU3MWNhYTNmZiZhcHBQYXJhbXM9IiwiaXNzIjoiQUN4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eCIsImV4cCI6MTMyODE5MTM2NH0." ++
+                 "NzDLBhq8I8GulFudZyiDvEvFCbRnL3FH82k1LU7qWb8",
+                 generate("ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+                          "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+                          [{client_outgoing, "APabe7650f654fc34655fc81ae71caa3ff"}],
+                           [{expires_after, 3600}])),
+    ok.
 
 build_scope_string_test() ->
     ?assertEqual(
@@ -99,16 +107,16 @@ build_scope_string_test() ->
 
 capability_to_scope_string_test() ->
     ?assertEqual(
-        "scope:client:incoming?clientName=CLIENT", 
+        "scope:client:incoming?clientName=CLIENT",
         capability_to_scope_string({client_incoming, "CLIENT"}, undefined)),
     ?assertEqual(
-        "scope:client:incoming?clientName=CLIENT%3c", 
+        "scope:client:incoming?clientName=CLIENT%3c",
         capability_to_scope_string({client_incoming, "CLIENT<"}, "asdfasdf")),
     ?assertEqual(
-        "scope:client:outgoing?appSid=1234&clientName=CLIENT%3c", 
+        "scope:client:outgoing?appSid=1234&clientName=CLIENT%3c",
         capability_to_scope_string({client_outgoing, "1234"}, "CLIENT<")),
     ?assertEqual(
-        "scope:client:outgoing?appSid=1234&clientName=CLIENT%3c", 
+        "scope:client:outgoing?appSid=1234&clientName=CLIENT%3c",
         capability_to_scope_string({client_outgoing, "1234"}, "CLIENT<")),
     ?assertEqual(
         "scope:client:outgoing?appSid=1234",
@@ -122,5 +130,3 @@ capability_to_scope_string_test() ->
     ok.
 
 -endif.
-
-
