@@ -14,6 +14,8 @@
 
 -export([generate/4, generate_claims/3]).
 
+-define(DEFAULT_EXPIRATION, 3600).
+
 -type auth_token()     :: string().
 -type account_sid()     :: string().
 -type application_sid() :: string().
@@ -50,7 +52,7 @@ generate_claims(AccountSID, Capabilities, Opts) ->
 
 %% @doc Generates the expiration date for a token.
 get_expiration(Opts) ->
-    ExpiresAfter = proplists:get_value(expires_after, Opts, 3600),
+    ExpiresAfter = proplists:get_value(expires_after, Opts, ?DEFAULT_EXPIRATION),
     {Megaseconds, Seconds, _Microseconds} = erlang:now(),
     (Megaseconds * 1000000) + Seconds + ExpiresAfter.
 
