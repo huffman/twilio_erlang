@@ -12,7 +12,7 @@
 %%%-------------------------------------------------------------------
 -module(twilio_capabilities).
 
--export([generate/4]).
+-export([generate/4, generate_claims/3]).
 
 -type auth_token()     :: string().
 -type account_sid()     :: string().
@@ -27,6 +27,12 @@
 %% @doc Generates a twilio capabilities token.
 -spec generate(account_sid(), auth_token(), [capability()], [capability_opt()]) -> binary().
 generate(AccountSID, AuthToken, Capabilities, Opts) ->
+    Claims = generate_claims(AccountSID, Capabilities, Opts),
+    jsonjwt:encode(Claims, AuthToken, "HS256").
+
+%% @doc Generates the payload, or JWT claims, to be encoded and signed
+%% to create a Twilio capabilities token.
+generate_claims(AccountSID, Capabilities, Opts) ->
     % Pull out the client name to be used for other capabilities.  Based
     % on what's seen in other implementations, this parameter needs
     % to be added to client_outgoing requests as well.
@@ -36,13 +42,11 @@ generate(AccountSID, AuthToken, Capabilities, Opts) ->
 
     FullScopeString = string:join(ScopeStrings, " "),
 
-    Claims = [
+    [
         {"scope", unicode:characters_to_binary(FullScopeString, utf8)},
         {"iss", unicode:characters_to_binary(AccountSID, utf8)},
         {"exp", get_expiration(Opts)}
-    ],
-
-    jsonjwt:encode(Claims, AuthToken, "HS256").
+    ].
 
 %% @doc Generates the expiration date for a token.
 get_expiration(Opts) ->
