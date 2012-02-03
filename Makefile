@@ -10,3 +10,6 @@ test:
 release:
 	./rebar generate -f
 
+edoc:
+	./rebar skip_deps=true doc
+
