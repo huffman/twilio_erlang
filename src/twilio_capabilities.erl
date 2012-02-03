@@ -20,8 +20,8 @@
 -type client_name()     :: string().
 -type stream_arg()      :: {string(), string()}.
 -type capability()      :: {client_incoming, client_name()}
-                           | {client_outgoing, application_sid()}
-                           | {event_stream, [stream_arg()]}.
+                         | {client_outgoing, application_sid(), [{string(), string()}]}
+                         | {event_stream, [stream_arg()]}.
 -type capability_opt()  :: {expires_after, integer()}.
 
 %% @doc Generates a twilio capabilities token.
@@ -50,18 +50,37 @@ get_expiration(Opts) ->
     {Megaseconds, Seconds, _Microseconds} = erlang:now(),
     (Megaseconds * 1000000) + Seconds + ExpiresAfter.
 
+%% @doc Maps and URL escapes a proplist and joins them together with '&'s.
+urlescapejoin(Params) ->
+    EncodedParams = [edoc_lib:escape_uri(Key) ++ "=" ++ edoc_lib:escape_uri(Value)
+        || {Key, Value} <- Params],
+    string:join(EncodedParams, "&").
+
 %% @doc Formats a capability as a scope string.
 capability_to_scope_string({client_incoming, ClientName}, _ClientName) ->
     build_scope_string("client", "incoming", [{"clientName", ClientName}]);
-capability_to_scope_string({client_outgoing, ApplicationSID}, ClientName) ->
+capability_to_scope_string({client_outgoing, ApplicationSID, ScopeParams}, ClientName) ->
     case ClientName of
         undefined ->
+            Params1 = [];
+        _ ->
+            Params1 = [{"clientName", ClientName}]
+    end,
+    case ScopeParams of
+        [] ->
+            Params2 = Params1;
+        _ ->
+            Params2 = [{"appParams", urlescapejoin(ScopeParams)} | Params1]
+    end,
+
+    build_scope_string("client", "outgoing", [{"appSid", ApplicationSID} | Params2]);
+capability_to_scope_string({event_stream, EventParams}, _ClientName) ->
+    case EventParams of
+        [] ->
             Params = [];
         _ ->
-            Params = [{"clientName", ClientName}]
+            Params = [{"params", urlescapejoin(EventParams)}]
     end,
-    build_scope_string("client", "outgoing", [{"appSid", ApplicationSID} | Params]);
-capability_to_scope_string({event_stream, Params}, _ClientName) ->
     build_scope_string("stream", "subscribe", [{"path", "/2010-04-01/Events"} | Params]).
     
 %% @doc Builds a scope string of the form `scope:service:privilege?key=value&key2=value2'.
@@ -106,18 +125,22 @@ capability_to_scope_string_test() ->
         capability_to_scope_string({client_incoming, "CLIENT<"}, "asdfasdf")),
     ?assertEqual(
         "scope:client:outgoing?appSid=1234&clientName=CLIENT%3c", 
-        capability_to_scope_string({client_outgoing, "1234"}, "CLIENT<")),
+        capability_to_scope_string({client_outgoing, "1234", []}, "CLIENT<")),
     ?assertEqual(
         "scope:client:outgoing?appSid=1234&clientName=CLIENT%3c", 
-        capability_to_scope_string({client_outgoing, "1234"}, "CLIENT<")),
+        capability_to_scope_string({client_outgoing, "1234", []}, "CLIENT<")),
     ?assertEqual(
         "scope:client:outgoing?appSid=1234",
-        capability_to_scope_string({client_outgoing, "1234"}, undefined)),
+        capability_to_scope_string({client_outgoing, "1234", []}, undefined)),
+    ?assertEqual(
+        "scope:client:outgoing?appSid=1234&appParams=name%3dryan%26this%3dthat",
+        capability_to_scope_string({client_outgoing, "1234",
+                [{"name", "ryan"}, {"this", "that"}]}, undefined)),
     ?assertEqual(
         "scope:stream:subscribe?path=%2f2010-04-01%2fEvents",
         capability_to_scope_string({event_stream, []}, undefined)),
     ?assertEqual(
-        "scope:stream:subscribe?path=%2f2010-04-01%2fEvents&channel=5",
+        "scope:stream:subscribe?path=%2f2010-04-01%2fEvents&params=channel%3d5",
         capability_to_scope_string({event_stream, [{"channel", "5"}]}, undefined)),
     ok.
 
