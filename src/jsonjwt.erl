@@ -14,7 +14,7 @@
 
 -type claim() :: {string(), string() | integer() | atom()}.
 
--type crypto_algorithm() :: "HS256" | "HS384" | "HS512" | "none".
+-type crypto_algorithm() :: string().
 
 %% @doc Encodes a JWT.  Algorithm should be "HS256" or "none".
 -spec encode([claim()], string(), string()) -> string().
