@@ -1,59 +1,60 @@
 %% Twilio records
 -record(twilio_called,
         {
-          called_number,
-          called_city,
-          called_zip,
-          called_state,
-          called_country,
-          called_country_code,
-          called_prefix
+          called_number       = [],
+          called_city         = [],
+          called_zip          = [],
+          called_state        = [],
+          called_country      = [],
+          called_country_code = [],
+          called_prefix       = []
          }).
 
 -record(twilio_caller,
         {
-          caller_number,
-          caller_city,
-          caller_zip,
-          caller_state,
-          caller_country,
-          caller_country_code,
-          caller_prefix
+          caller_number       = [],
+          caller_city         = [],
+          caller_zip          = [],
+          caller_state        = [],
+          caller_country      = [],
+          caller_country_code = [],
+          caller_prefix       = []
          }).
 
 -record(twilio_from,
         {
-          from_number,
-          from_city,
-          from_zip,
-          from_state,
-          from_country,
-          from_country_code,
-          from_prefix
+          from_number       = [],
+          from_city         = [],
+          from_zip          = [],
+          from_state        = [],
+          from_country      = [],
+          from_country_code = [],
+          from_prefix       = []
          }).
 
 -record(twilio_to,
         {
-          to_number,
-          to_city,
-          to_zip,
-          to_state,
-          to_country,
-          to_country_code,
-          to_prefix
+          to_number       = [],
+          to_city         = [],
+          to_zip          = [],
+          to_state        = [],
+          to_country      = [],
+          to_country_code = [],
+          to_prefix       = []
          }).
 
 -record(twilio,
         {
-          account_sid,
-          direction,
-          call_status,
-          call_sid,
-          api_version,
-          called = #twilio_called{},
-          caller = #twilio_caller{},
-          from = #twilio_from{},
-          to = #twilio_to{}
+          account_sid     = [],
+          application_sid = [],
+          direction       = [],
+          call_status     = [],
+          call_sid        = [],
+          api_version     = [],
+          called          = #twilio_called{},
+          caller          = #twilio_caller{},
+          from            = #twilio_from{},
+          to              = #twilio_to{}
          }).
 
 % Country Codes For Lookup
