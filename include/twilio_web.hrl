@@ -1,46 +1,52 @@
 %% Twilio records
+-record(twilio_duration,
+        {
+          duration,
+          call_duration
+         }).
+
 -record(twilio_called,
         {
-          called_number       = [],
-          called_city         = [],
-          called_zip          = [],
-          called_state        = [],
-          called_country      = [],
-          called_country_code = [],
-          called_prefix       = []
+          number       = [],
+          city         = [],
+          zip          = [],
+          state        = [],
+          country      = [],
+          country_code = [],
+          prefix       = []
          }).
 
 -record(twilio_caller,
         {
-          caller_number       = [],
-          caller_city         = [],
-          caller_zip          = [],
-          caller_state        = [],
-          caller_country      = [],
-          caller_country_code = [],
-          caller_prefix       = []
+          number       = [],
+          city         = [],
+          zip          = [],
+          state        = [],
+          country      = [],
+          country_code = [],
+          prefix       = []
          }).
 
 -record(twilio_from,
         {
-          from_number       = [],
-          from_city         = [],
-          from_zip          = [],
-          from_state        = [],
-          from_country      = [],
-          from_country_code = [],
-          from_prefix       = []
+          number       = [],
+          city         = [],
+          zip          = [],
+          state        = [],
+          country      = [],
+          country_code = [],
+          prefix       = []
          }).
 
 -record(twilio_to,
         {
-          to_number       = [],
-          to_city         = [],
-          to_zip          = [],
-          to_state        = [],
-          to_country      = [],
-          to_country_code = [],
-          to_prefix       = []
+          number       = [],
+          city         = [],
+          zip          = [],
+          state        = [],
+          country      = [],
+          country_code = [],
+          prefix       = []
          }).
 
 -record(twilio,
@@ -51,10 +57,12 @@
           call_status     = [],
           call_sid        = [],
           api_version     = [],
-          called          = #twilio_called{},
-          caller          = #twilio_caller{},
-          from            = #twilio_from{},
-          to              = #twilio_to{}
+          custom_params   = [],
+          called          = null,
+          caller          = null,
+          from            = null,
+          to              = null,
+          call_duration   = null
          }).
 
 % Country Codes For Lookup
