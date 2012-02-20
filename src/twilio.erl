@@ -34,16 +34,16 @@ make_call(AccountSID, AuthToken, From, To, Params) ->
 request(AccountSID, AuthToken, Method, Path, Params) ->
     RequestURL = "https://" ++ AccountSID ++ ":" ++ AuthToken
                  ++ "@"?BASE_URL"/"?API_VERSION_2010 ++ Path,
-
     ParamsString = expand_params(Params),
     Request = {RequestURL, [], "application/x-www-form-urlencoded", ParamsString},
-
     % @TODO properly parse for twilio errors
     case httpc:request(Method, Request, [], []) of
-        {ok, _} = Result ->
-            Result;
+        {ok, {{_, 201, _}, _, _}} = Result ->
+            {ok, ok};
+        {ok, {{_, N, _}, _, _}} ->
+            {error, "Error: " ++ integer_to_list(N)};
         {error, _} = Error ->
-            Error
+            {error, Error}
     end.
 
 %% @doc Expands a list of twilio parameters to a URL escaped query string.
