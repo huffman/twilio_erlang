@@ -118,7 +118,7 @@ HTTP method, as `Params'.  The function must return a list of TwiML records.
 
 ### Utilities
 
-There are a number of utilities for handling parameters more easily by parseing them into Erlang records:
+There are a number of utilities for handling parameters more easily by parsing them into Erlang records:
 
 ```erlang
 %% @doc Handle incoming twilio requests on "/machine".
