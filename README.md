@@ -1,9 +1,9 @@
 Twilio
 ======
 
-This library provides an easy way to work with Twilio 
+This library provides an easy way to work with Twilio
 cloud telephony service (http://www.twilio.com/), including initiating calls,
-sending SMSs, generating TwiML, and handling 
+sending SMSs, generating TwiML, and handling
 callbacks from the twilio server itself.
 
 If you already have a web server setup and/or your own routing mechanisms you can
@@ -61,7 +61,7 @@ produces:
 
 *BETA*
 
-Twilio Capability tokens tokens are described at 
+Twilio Capability tokens tokens are described at
 [http://www.twilio.com/docs/client/capability-tokens]
 
 ```erlang
@@ -69,7 +69,7 @@ AccountSID = "ACXXXXXXXXXXXXXXX",
 AuthToken = "secret",
 Capabilities = [{client_incoming, "tommy"}, {client_outgoing, "JJJJ"}],
 Opts = [{expires_after, 3600}], % 6 minutes
-Token = twilio_capabilities:generate(AccountSID, AuthToken, Capabilities, 
+Token = twilio_capabilities:generate(AccountSID, AuthToken, Capabilities,
 Opts).
 <<"eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzY29wZSI6WzExNSw5OSwxMTEsMTEyLDEwMSw1OCw5OSwxMDgsMTA1LDEwMSwxMTAsMTE2LDU4LDEwNSwxMTAsOTksMTExLDEwOSwxMDUsMTEwLDEwMyw2Myw5OSwxMDgsMTA1LDEwMSwxMTAsMTE2LDc4LDk3LDEwOSwxMDEsNjEsMTE2LDExMSwxMDksMTA5LDEyMSwzMiwxMTUsOTksMTExLDExMiwxMDEsNTgsOTksMTA4LDEwNSwxMDEsMTEwLDExNiw1OCwxMTEsMTE3LDExNiwxMDMsMTExLDEwNSwxMTAsMTAzLDYzLDk3LDExMiwxMTIsODMsMTA1LDEwMCw2MSw3NCw3NCw3NCw3NCwzOCw5OSwxMDgsMTA1LDEwMSwxMTAsMTE2LDc4LDk3LDEwOSwxMDEsNjEsMTE2LDExMSwxMDksMTA5LDEyMV0sImlzcyI6WzY1LDY3LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4LDg4XSwiZXhwIjoxMzI3OTk3NzIxfQ==.l6HkGKuiPahjEJpRrqfG5ZLTdcqwHpfA5UFwKVPEEuE=">>
 ```
@@ -92,7 +92,7 @@ need to make sure you have the number setup on Twilio to point to your server.
 
 The web server will automatically route requests to a module based on the incoming request path.
 
-An arbitrary path `/ROOT/...` will call the function `twilio_rt_ROOT:handle_request(RestOfPath, Props)` 
+An arbitrary path `/ROOT/...` will call the function `twilio_rt_ROOT:handle_request(RestOfPath, Props)`
 where `Props` contains the HTTP request parameters.
 
 Here is an example from the machine router `twilio_rt_machine`:
@@ -111,8 +111,41 @@ handle_request(["start"], Params) ->
     ];
 ```
 
-This handles the route `/start` and passes the URL query or POST parameters, depending on the 
+
+
+This handles the route `/start` and passes the URL query or POST parameters, depending on the
 HTTP method, as `Params'.  The function must return a list of TwiML records.
+
+### Utilities
+
+There are a number of utilities for handling parameters more easily by parseing them into Erlang records:
+
+```erlang
+%% @doc Handle incoming twilio requests on "/machine".
+handle_request(["start"], Params) ->
+    % these are values sent in from twilio
+    Tw = twilio_web_util:process_body(Params),
+    twilio_web_util:pretty_print(Tw),
+```
+
+This will parse and print out the incoming record giving something like this in the shell:
+```***Start of Twilio Record***********************
+Account Sid is     "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+Application Sid is []
+Direction is       "inbound"
+Call Status is     "in-progress"
+Call Sid is        "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+API Version is     "2010-04-01"
+Custom Params is   []
+
+called Number is       "01315101875"
+called City is         []
+called Zip is          []
+called State is        "Edinburgh"
+
+(...)
+
+```
 
 License
 =======
