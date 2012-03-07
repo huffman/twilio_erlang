@@ -212,16 +212,17 @@ pretty_p_inprog(#twilio_inprogress{digits = D, msg = M}) ->
 
 unpack_test() ->
     Bin = <<"AccountSid=yabollocks&ToZip=&FromState=&Called=%2B441315101875&FromCountry=GB&CallerCountry=GB&CalledZip=&Direction=inbound&FromCity=&CalledCountry=GB&CallerState=&CallSid=yahoor&CalledState=Edinburgh&From=%2B447776251669&CallerZip=&FromZip=&CallStatus=ringing&ToCity=&ToState=Edinburgh&To=%2B441315101875&ToCountry=GB&CallerCity=&ApiVersion=2010-04-01&Caller=%2B447776251669&CalledCity=">>,
-    OutPut = {twilio,"yabollocks","inbound","ringing","yahoor",
-        "2010-04-01",
-        {twilio_called,"01315101875",[],[],"Edinburgh",
-                       "United Kingdom","GB","+44"},
-        {twilio_caller,"07776251669",[],[],[],"United Kingdom","GB",
-                       "+44"},
-        {twilio_from,"07776251669",[],[],[],"United Kingdom","GB",
-                     "+44"},
-        {twilio_to,"01315101875",[],[],"Edinburgh","United Kingdom",
-                   "GB","+44"}},
+    OutPut = {twilio, "yabollocks", [], "inbound","ringing","yahoor",
+              "2010-04-01", [],
+              {twilio_called,"01315101875",[],[],"Edinburgh",
+               "United Kingdom","GB","+44"},
+              {twilio_caller,"07776251669",[],[],[],"United Kingdom","GB",
+               "+44"},
+              {twilio_from,"07776251669",[],[],[],"United Kingdom","GB",
+               "+44"},
+              {twilio_to,"01315101875",[],[],"Edinburgh","United Kingdom",
+               "GB","+44"},
+              null, null},
     ?assertEqual(OutPut, process_body(Bin)).
 
 -endif.
