@@ -1,4 +1,10 @@
 %% Twilio records
+-record(twilio_inprogress,
+        {
+          digits,
+          msg
+         }).
+
 -record(twilio_duration,
         {
           duration,
@@ -62,7 +68,8 @@
           caller          = null,
           from            = null,
           to              = null,
-          call_duration   = null
+          call_duration   = null,
+          inprogress      = null
          }).
 
 % Country Codes For Lookup
