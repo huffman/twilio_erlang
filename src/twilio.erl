@@ -38,7 +38,7 @@ request(AccountSID, AuthToken, Method, Path, Params) ->
     Request = {RequestURL, [], "application/x-www-form-urlencoded", ParamsString},
     % @TODO properly parse for twilio errors
     case httpc:request(Method, Request, [], []) of
-        {ok, {{_, 201, _}, _, _}} = Result ->
+        {ok, {{_, 201, _}, _, _}} ->
             {ok, ok};
         {ok, {{_, N, _}, _, _}} ->
             {error, "Error: " ++ integer_to_list(N)};
