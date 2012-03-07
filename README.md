@@ -1,6 +1,9 @@
 Twilio
 ======
 
+[![Build Status](https://secure.travis-ci.org/huffman/twilio_erlang.png)](http://travis-ci.org/huffman/twilio_erlang])
+
+
 This library provides an easy way to work with Twilio
 cloud telephony service (http://www.twilio.com/), including initiating calls,
 sending SMSs, generating TwiML, and handling
