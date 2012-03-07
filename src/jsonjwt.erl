@@ -17,7 +17,7 @@
 -type crypto_algorithm() :: string().
 
 %% @doc Encodes a JWT.  Algorithm should be "HS256" or "none".
--spec encode([claim()], string(), string()) -> string().
+-spec encode([claim()], string(), crypto_algorithm())-> string().
 encode(Claims, Key, Algorithm) ->
     Header = [{<<"typ">>, <<"JWT">>}, {<<"alg">>, list_to_binary(Algorithm)}],
     HeaderJSON = unicode:characters_to_binary(mochijson2:encode({struct, Header}), utf8),
