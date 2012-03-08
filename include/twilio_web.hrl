@@ -560,7 +560,7 @@
                        "fr",
                        "de"
                       ]).
--define(SAYGenders, [
-                     "man",
-                     "woman"
-                     ]).
+-define(SAYVoices, [
+                    "man",
+                    "woman"
+                   ]).
