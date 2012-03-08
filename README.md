@@ -121,6 +121,8 @@ HTTP method, as `Params'.  The function must return a list of TwiML records.
 
 ### Utilities
 
+*BETA*
+
 There are a number of utilities for handling parameters more easily by parsing them into Erlang records:
 
 ```erlang
@@ -130,6 +132,8 @@ handle_request(["start"], Params) ->
     Tw = twilio_web_util:process_body(Params),
     twilio_web_util:pretty_print(Tw),
 ```
+
+**NOTE** This work is not complete. the various Twilio parameters are being implemented gradually. Paramaters not currently handled are returned as a list in the field `#twilio.custom_params`. If you see parameters in that field consider adding clauses to the function `twilio_web_util:make_r/7` and adding information to the records in `twilio_web.hrl`.
 
 This will parse and print out the incoming record giving something like this in the shell:
 
