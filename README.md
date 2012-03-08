@@ -133,8 +133,6 @@ handle_request(["start"], Params) ->
     twilio_web_util:pretty_print(Tw),
 ```
 
-**NOTE** This work is not complete. the various Twilio parameters are being implemented gradually. Paramaters not currently handled are returned as a list in the field `#twilio.custom_params`. If you see parameters in that field consider adding clauses to the function `twilio_web_util:make_r/7` and adding information to the records in `twilio_web.hrl`.
-
 This will parse and print out the incoming record giving something like this in the shell:
 
 ```
@@ -155,6 +153,7 @@ called State is        "Edinburgh"
 (...)
 
 ```
+**NOTE** This work is not complete. the various Twilio parameters are being implemented gradually. Paramaters not currently handled are returned as a list in the field `#twilio.custom_params`. If you see parameters in that field consider adding clauses to the function `twilio_web_util:make_r/7` and adding information to the records in `twilio_web.hrl`.
 
 License
 =======
