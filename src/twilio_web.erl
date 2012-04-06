@@ -11,29 +11,30 @@
 
 -include("twilio.hrl").
 
--define(DEFAULT_PORT, 8080).
+-define(DEFAULT_PORT, 9999).
 
 %% @equiv start(8080)
 start() ->
+    io:format("Starting twilio on port: ~p~n", [?DEFAULT_PORT]),
     start(?DEFAULT_PORT).
 
 %% @doc Starts a mochiweb HTTP server on the specified port.  Incoming
 %% requests will be  routed to the handling "twilio_rt_*" module.
 start(Port) ->
-    io:format("Starting mochiweb"),
+    io:format("Starting mochiweb~n"),
     mochiweb_http:start([{name, ?MODULE}, {port, Port}, {loop, {?MODULE, loop}}]).
 
 %% @doc Mochiweb loop, handling incoming twilio requests.
 loop(Req) ->
+    io:format("Call arrived...."),
     case Req:get(method) of
         'GET' ->
             Params = Req:parse_qs();
         'POST' ->
             Params = Req:parse_post()
     end,
-	"/" ++ Path = Req:get(path),
-    PathList = string:tokens(Path, "/"),
-    XML = route(PathList, Params),
+    XML = twilio_ext:handle(Params),
+    io:format("Replying with ~p~n", [XML]),
     Req:ok({"text/xml", XML}).
 
 %% @doc Routes a twilio request to a handler that will

@@ -25,5 +25,6 @@ start_link() ->
 
 init([]) ->
     TwilioWeb = ?CHILD(twilio_web, worker),
-    {ok, { {one_for_one, 5, 10}, [TwilioWeb]} }.
+    InboundPhone = ?CHILD(inbound_phone_sup, supervisor),
+    {ok, { {one_for_one, 5, 10}, [TwilioWeb, InboundPhone]} }.
 
