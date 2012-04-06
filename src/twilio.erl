@@ -1,4 +1,4 @@
-OB%%%-------------------------------------------------------------------
+%%%-------------------------------------------------------------------
 %%% @author Ryan Huffman <ryanhuffman@gmail.com>
 %%% @copyright 2011, Ryan Huffman
 %%% @doc Twilio REST API library.  Uses API version "2010-04-01".
