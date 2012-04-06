@@ -1,0 +1,4 @@
+-define(PhoneNo, "+441315101897").
+-define(AppSid, AP93d273f3cc624008805842376d561bed).
+-define(AccountSid, AC7a076e30da6d49119b335d3a6de43844).
+-define(AuthToken, 9248c9a2a25f6914fad9c9fb5b30e69c).

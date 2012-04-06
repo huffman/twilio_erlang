@@ -549,18 +549,3 @@
          {"Zimbabwe", "ZWE", 263},
          {"Zimbabwe", "ZW", 263}
         ]).
-
-% some definitions
--define(SMSLength, 160).
--define(SAYLength, 4000).
--define(SAYLanguages, [
-                       "en",
-                       "en-gb",
-                       "es",
-                       "fr",
-                       "de"
-                      ]).
--define(SAYVoices, [
-                    "man",
-                    "woman"
-                   ]).
