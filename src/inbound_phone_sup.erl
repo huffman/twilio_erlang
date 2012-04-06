@@ -12,8 +12,8 @@
 
 %% API
 -export([
-         start_link/1,
-         answer_phone/2
+         start_link/0,
+         answer_phone/1
          %call_in_progress/2
         ]).
 
@@ -25,11 +25,10 @@
 %%%===================================================================
 %%% API functions
 %%%===================================================================
--spec answer_phone(string(), string()) -> pid() | string().
-answer_phone(Site, CallId) ->
+-spec answer_phone(string()) -> pid() | string().
+answer_phone(CallId) ->
     ChildSpec = gen_child_spec(CallId),
-    Id = hn_util:site_to_atom(Site, "_inbound_phone"),
-    case supervisor:start_child({global, Id}, ChildSpec) of
+    case supervisor:start_child({local, CallId}, ChildSpec) of
         {ok, Pid}                       -> Pid;
         {error, {already_started, Pid}} -> Pid;
         Else                            -> Else
@@ -42,14 +41,8 @@ answer_phone(Site, CallId) ->
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(Site) ->
-    case application:get_env(hypernumbers, startup_debug) of
-        {ok, true} -> io:format("...starting inbound_phone_srv for ~p~n",
-                                [Site]);
-        _Other     -> ok
-    end,
-    Id = hn_util:site_to_atom(Site, "_inbound_phone"),
-    supervisor:start_link({global, Id}, ?MODULE, []).
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %%%===================================================================
 %%% Supervisor callbacks
@@ -74,5 +67,5 @@ init([]) -> {ok,{{one_for_one,1,30}, []}}.
 %%% Internal functions
 %%%===================================================================
 gen_child_spec(S) ->
-    {S, {inbound_phone_fsm, start_link, [S]},
+    {S, {inbound_phone_srv, start_link, [S]},
      transient, 2000, worker, dynamic}.

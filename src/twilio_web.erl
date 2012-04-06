@@ -15,13 +15,12 @@
 
 %% @equiv start(8080)
 start() ->
-    io:format("Starting twilio on port: ~p~n", [?DEFAULT_PORT]),
     start(?DEFAULT_PORT).
 
 %% @doc Starts a mochiweb HTTP server on the specified port.  Incoming
-%% requests will be  routed to the handling "twilio_rt_*" module.
+%% requests will be routed to the handling "twilio_rt_*" module.
 start(Port) ->
-    io:format("Starting mochiweb~n"),
+    io:format("Starting mochiweb bound to port ~p~n", [Port]),
     mochiweb_http:start([{name, ?MODULE}, {port, Port}, {loop, {?MODULE, loop}}]).
 
 %% @doc Mochiweb loop, handling incoming twilio requests.

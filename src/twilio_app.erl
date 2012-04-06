@@ -2,8 +2,12 @@
 
 -behaviour(application).
 
+-export([init/0]).
+
 %% Application callbacks
 -export([start/2, stop/1]).
+
+init() -> application:start(twilio).
 
 %% ===================================================================
 %% Application callbacks

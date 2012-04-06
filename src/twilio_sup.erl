@@ -1,4 +1,3 @@
-
 -module(twilio_sup).
 
 -behaviour(supervisor).
@@ -24,7 +23,17 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    TwilioWeb = ?CHILD(twilio_web, worker),
-    InboundPhone = ?CHILD(inbound_phone_sup, supervisor),
-    {ok, { {one_for_one, 5, 10}, [TwilioWeb, InboundPhone]} }.
+    Twilio      = {twilio_web,
+                   {twilio_web, start, []},
+                   permanent,
+                   2000,
+                   worker,
+                   [twilio_web]},
+    InboundPhone = {inbound_phone_sup,
+                    {inbound_phone_sup, start_link, []},
+                    permanent,
+                    infinity,
+                    supervisor,
+                    [inbound_phone_sup]},
+    {ok, {{one_for_one, 1, 10}, [Twilio, InboundPhone]}}.
 
