@@ -23,8 +23,11 @@
 -include("twilio_web.hrl").
 
 handle(Params) ->
-    inbound_phone_sup:answer_phone(Params),
-    ok.
+    log_terms(Params, "twilio.params.log"),
+    Records = twilio_web_util:process_proplist(Params),
+    Ret = inbound_phone_sup:answer_phone(Records),
+    io:format("inbound phone sup replied with ~p~n", [Ret]),
+    twiml:encode([#say{text="dancing boy"}]).
 
 get_twiml_ext(1) -> [#say{text="yowza"}].
 
