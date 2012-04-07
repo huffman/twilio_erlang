@@ -40,23 +40,30 @@ handle(Params) ->
             ok
     end.
 
-get_twiml_ext(1) -> [#say{text = "yowza"}];
-get_twiml_ext(2) -> [#say{text = "bonza, dogface",
-                          language = "fr",
-                          voice = "woman"},
-                     #say{text = "now piss aff!"}];
-get_twiml_ext(3) -> [#say{text = "sorting out this"},
-                     #sms{text = "ping this pony boy",
+get_twiml_ext(N) ->
+    TwiML = get_twiml2(N),
+    case twiml:is_valid(TwiML) of
+        false -> exit("invalid TwiML");
+        true -> TwiML
+    end.
+
+get_twiml2(1) -> [#say{text = "yowza"}];
+get_twiml2(2) -> [#say{text = "bonza, dogface",
+                       language = "fr",
+                       voice = "woman"},
+                  #say{text = "now piss aff!"}];
+get_twiml2(3) -> [#say{text = "sorting out this"},
+                  #sms{text = "ping this pony boy",
                           to = "+447776251669",
                           from = "+441315101897"}];
-get_twiml_ext(4) -> [#say{text = "hot diggity",
-                          language = "de",
-                          voice = "woman"},
-                     #pause{length = 10},
-                     #say{text = "lover boy!",
-                          voice= "woman"}];
-get_twiml_ext(5) -> [#play{url = "http://files.hypernumbers.com/music/"
-                           ++ "RockyMountainMedleyPart1.mp3"}].
+get_twiml2(4) -> [#say{text = "hot diggity",
+                       language = "de",
+                       voice = "woman"},
+                  #pause{length = 10},
+                  #say{text = "lover boy!",
+                       voice= "woman"}];
+get_twiml2(5) -> [#play{url = "http://files.hypernumbers.com/music/"
+                        ++ "RockyMountainMedleyPart1.mp3"}].
 
 log_terms(Terms, File) ->
     Str = lists:flatten(io_lib:format("~p.~n", [Terms])),
