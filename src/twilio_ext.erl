@@ -31,8 +31,8 @@ handle(Params) ->
             io:format("phone ringing...~n"),
             {A, B, C} = now(),
             random:seed(A, B, C),
-            N = random:uniform(1),
-            TwiML_EXT = twilio_ext:get_twiml_ext(N),
+            _N = random:uniform(1),
+            TwiML_EXT = twilio_ext:get_twiml_ext(5),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
             io:format("call completed...~n"),
@@ -40,15 +40,23 @@ handle(Params) ->
             ok
     end.
 
-get_twiml_ext(1) -> [#say{text = "sorting out this"},
+get_twiml_ext(1) -> [#say{text = "yowza"}];
+get_twiml_ext(2) -> [#say{text = "bonza, dogface",
+                          language = "fr",
+                          voice = "woman"},
+                     #say{text = "now piss aff!"}];
+get_twiml_ext(3) -> [#say{text = "sorting out this"},
                      #sms{text = "ping this pony boy",
                           to = "+447776251669",
                           from = "+441315101897"}];
-get_twiml_ext(2) -> [#say{text = "yowza"}];
-get_twiml_ext(3) -> [#say{text = "bonza, dogface",
-                          language = "fr",
+get_twiml_ext(4) -> [#say{text = "hot diggity",
+                          language = "de",
                           voice = "woman"},
-                     #say{text = "now piss aff!"}].
+                     #pause{length = 10},
+                     #say{text = "lover boy!",
+                          voice= "woman"}];
+get_twiml_ext(5) -> [#play{url = "http://files.hypernumbers.com/music/"
+                           ++ "RockyMountainMedleyPart1.mp3"}].
 
 log_terms(Terms, File) ->
     Str = lists:flatten(io_lib:format("~p.~n", [Terms])),
