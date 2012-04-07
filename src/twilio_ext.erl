@@ -24,22 +24,22 @@
 -include("twilio_web.hrl").
 
 handle(Params) ->
-    log_terms(Params, "twilio.params.log"),
+    log_terms(Params, "twilio.params.logx"),
     Records = twilio_web_util:process_proplist(Params),
     case Records#twilio.call_status of
         "ringing" ->
-            N = random:uniform(1),
+            N = random:uniform(2),
             TwiML_EXT = twilio_ext:get_twiml_ext(N),
-            Ret = inbound_phone_sup:answer_phone(Records, TwiML_EXT),
-            io:format("inbound phone sup replied with ~p~n", [Ret]),
-            twiml:encode([#say{text="dancing boy"}]);
+            inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
-            Ret = inbound_phone_sup:call_complete(Records),
-            io:format("inbound phone sup replied with ~p~n", [Ret]),
-            twiml:encode([#say{text="prat"}])
+            ok = inbound_phone_sup:call_complete(Records),
+            ok
     end.
 
-get_twiml_ext(1) -> [#say{text="yowza"}].
+get_twiml_ext(1) -> [#say{text="yowza"}];
+get_twiml_ext(2) -> [#say{text="bonza, dogface", language = "fr",
+                         voice = "woman"},
+                    #say{text = "now piss aff!"}].
 
 log_terms(Terms, File) ->
     Str = lists:flatten(io_lib:format("~p.~n", [Terms])),
