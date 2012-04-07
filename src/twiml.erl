@@ -211,9 +211,7 @@ comp3([#dial{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
                                     NewRank, []),
     NewRank2 = bump(NewRank),
     CloseDial = Fun("Dial", NewRank2),
-    io:format("D is ~p Rank2 is ~p~n", [D, Rank2]),
     NewRec = Fun(D, Rank2),
-    io:format("NewRec is ~p~n", [NewRec]),
     comp3(T, ExitType, state, Fun, Rank2,
           [CloseDial, NewBody, NewRec | Acc]);
 comp3([#response_EXT{} = R | T], ExitType, _Type, Fun, Rank, Acc) ->

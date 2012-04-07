@@ -32,7 +32,7 @@ handle(Params) ->
             {A, B, C} = now(),
             random:seed(A, B, C),
             _N = random:uniform(1),
-            TwiML_EXT = twilio_ext:get_twiml_ext(5),
+            TwiML_EXT = twilio_ext:get_twiml_ext(6),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
             io:format("call completed...~n"),
@@ -63,7 +63,8 @@ get_twiml2(4) -> [#say{text = "hot diggity",
                   #say{text = "lover boy!",
                        voice= "woman"}];
 get_twiml2(5) -> [#play{url = "http://files.hypernumbers.com/music/"
-                        ++ "RockyMountainMedleyPart1.mp3"}].
+                        ++ "RockyMountainMedleyPart1.mp3"}];
+get_twiml2(6) -> [#dial{body = [#number{number = "+447776301539"}]}].
 
 log_terms(Terms, File) ->
     Str = lists:flatten(io_lib:format("~p.~n", [Terms])),
