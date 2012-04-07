@@ -111,8 +111,7 @@ debug2() ->
               {"ApiVersion","2010-04-01"},
               {"Caller","+447776251669"},
               {"CalledCity",[]}],
-    handle(Params),
-    supervisor:which_children(inbound_phone_sup).
+    handle(Params).
 
 hangup(CallSID) ->
     Params = [{"AccountSid","AC7a076e30da6d49119b335d3a6de43844"},
@@ -142,5 +141,4 @@ hangup(CallSID) ->
               {"ApiVersion","2010-04-01"},
               {"Caller","+447776251669"},
               {"CalledCity",[]}],
-    handle(Params),
-    supervisor:which_children(inbound_phone_sup).
+    handle(Params).

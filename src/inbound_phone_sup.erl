@@ -86,7 +86,7 @@ init([]) -> {ok,{{one_for_one,1,30}, []}}.
 gen_child_spec(S, TwiML_EXT) ->
     #twilio{call_sid = CallSID} = S,
     {CallSID, {inbound_phone_srv, start_link, [S, TwiML_EXT]},
-     permanent, brutal_kill, worker, [inbound_phone_srv]}.
+     transient, brutal_kill, worker, [inbound_phone_srv]}.
 
 get_pid(Call) ->
     Servers = supervisor:which_children(inbound_phone_sup),
