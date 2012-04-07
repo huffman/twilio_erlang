@@ -12,13 +12,16 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1]).
+-export([start_link/2]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
 -define(SERVER, ?MODULE).
+
+-include("twilio.hrl").
+-include("twilio_web.hrl").
 
 -record(state, {}).
 
@@ -33,9 +36,10 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(Params) ->
-    io:format("Starting inbound_phone_srv for ~p~n", [Params]),
-    gen_server:start_link(?MODULE, [Params], []).
+start_link(Params, TwiML) ->
+    io:format("Starting inbound_phone_srv for ~p~n-with ~p~n",
+              [Params, TwiML]),
+    gen_server:start_link(?MODULE, [Params, TwiML], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -52,7 +56,7 @@ start_link(Params) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([_Params]) ->
+init([_Params, _TwiML_EXT]) ->
     io:format("In inbound_phone_srv:init~n"),
     {ok, #state{}}.
 
@@ -70,7 +74,17 @@ init([_Params]) ->
 %%                                   {stop, Reason, State}
 %% @end
 %%--------------------------------------------------------------------
-handle_call(_Request, _From, State) ->
+handle_call(Request, _From, State) ->
+    case Request of
+        {call_complete, Rec} ->
+            % we do nothing, but you might want to squirrell away the
+            % duration for bill purposes
+            spawn(timer, apply_after, [1000, supervisor, terminate_child,
+                                       [inbound_phone_sup,
+                                        Rec#twilio.call_sid]]);
+        {Other, _Rec} ->
+            io:format("Got ~p call in inbound_phone_srv~n", [Other])
+    end,
     Reply = ok,
     {reply, Reply, State}.
 

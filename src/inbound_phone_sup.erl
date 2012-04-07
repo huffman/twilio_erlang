@@ -16,7 +16,8 @@
 %% API
 -export([
          start_link/0,
-         answer_phone/1
+         answer_phone/2,
+         call_complete/1
          %call_in_progress/2
         ]).
 
@@ -30,27 +31,25 @@
 %%%===================================================================
 %%% API functions
 %%%===================================================================
--spec answer_phone(string()) -> pid() | string().
-answer_phone(Params) ->
-    ChildSpec = gen_child_spec(Params),
+-spec answer_phone(#twilio{}, list()) -> pid() | string().
+answer_phone(Params, TwiML_EXT) ->
+    ChildSpec = gen_child_spec(Params, TwiML_EXT),
     io:format("ChildSpec is ~p~n", [ChildSpec]),
     case supervisor:start_child(?MODULE, ChildSpec) of
         {ok, Pid} ->
-            N = random:uniform(1),
-            TwiML_EXT = twilio_ext:get_twiml_ext(N),
             io:format("Starting state machine with ~p~n", [TwiML_EXT]),
             io:format("call started...~n"),
             Pid;
-        {error, {{already_started, Pid}, _}} ->
-            io:format("call already exists (1)~n"),
-            Pid;
-        {error, {already_started, Pid}} ->
-            io:format("call already exists (2)~n"),
-            Pid;
-        Else ->
-            io:format("Something else happend on startup ~p~n", [Else]),
-            Else
+        Other ->
+            {error, Other}
     end.
+
+-spec call_complete(#twilio{}) -> pid() | string().
+call_complete(Params) ->
+    Call = Params#twilio.call_sid,
+    Pid = get_pid(Call),
+    io:format("Pid is ~p~n", [Pid]),
+    gen_server:call(Pid, {call_complete, Params}).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -84,7 +83,18 @@ init([]) -> {ok,{{one_for_one,1,30}, []}}.
 %%%===================================================================
 %%% Internal functions
 %%%===================================================================
-gen_child_spec(S) ->
+gen_child_spec(S, TwiML_EXT) ->
     #twilio{call_sid = CallSID} = S,
-    {CallSID, {inbound_phone_srv, start_link, [S]},
+    {CallSID, {inbound_phone_srv, start_link, [S, TwiML_EXT]},
      permanent, brutal_kill, worker, [inbound_phone_srv]}.
+
+get_pid(Call) ->
+    Servers = supervisor:which_children(inbound_phone_sup),
+    io:format("Servers is ~p~n", [Servers]),
+    case lists:keyfind(Call, 1, Servers) of
+        false             -> exit("server doesn't exist");
+        {Call, Pid, _, _} -> case Pid of
+                                 undefined -> exit("server has been closed");
+                                 Pid       -> Pid
+                             end
+    end.
