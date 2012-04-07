@@ -34,12 +34,11 @@
 -spec answer_phone(#twilio{}, list()) -> pid() | string().
 answer_phone(Params, TwiML_EXT) ->
     ChildSpec = gen_child_spec(Params, TwiML_EXT),
-    io:format("ChildSpec is ~p~n", [ChildSpec]),
     case supervisor:start_child(?MODULE, ChildSpec) of
         {ok, Pid} ->
             io:format("Starting state machine with ~p~n", [TwiML_EXT]),
             io:format("call started...~n"),
-            Pid;
+            gen_server:call(Pid, {start_call, Params});
         Other ->
             {error, Other}
     end.
