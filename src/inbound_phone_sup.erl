@@ -10,6 +10,9 @@
 
 -behaviour(supervisor).
 
+-include("twilio.hrl").
+-include("twilio_web.hrl").
+
 %% API
 -export([
          start_link/0,
@@ -18,7 +21,9 @@
         ]).
 
 %% Supervisor callbacks
--export([init/1]).
+-export([
+         init/1
+        ]).
 
 -define(SERVER, ?MODULE).
 
@@ -26,12 +31,25 @@
 %%% API functions
 %%%===================================================================
 -spec answer_phone(string()) -> pid() | string().
-answer_phone(CallId) ->
-    ChildSpec = gen_child_spec(CallId),
-    case supervisor:start_child({local, CallId}, ChildSpec) of
-        {ok, Pid}                       -> Pid;
-        {error, {already_started, Pid}} -> Pid;
-        Else                            -> Else
+answer_phone(Params) ->
+    ChildSpec = gen_child_spec(Params),
+    io:format("ChildSpec is ~p~n", [ChildSpec]),
+    case supervisor:start_child(?MODULE, ChildSpec) of
+        {ok, Pid} ->
+            N = random:uniform(1),
+            TwiML_EXT = twilio_ext:get_twiml_ext(N),
+            io:format("Starting state machine with ~p~n", [TwiML_EXT]),
+            io:format("call started...~n"),
+            Pid;
+        {error, {{already_started, Pid}, _}} ->
+            io:format("call already exists (1)~n"),
+            Pid;
+        {error, {already_started, Pid}} ->
+            io:format("call already exists (2)~n"),
+            Pid;
+        Else ->
+            io:format("Something else happend on startup ~p~n", [Else]),
+            Else
     end.
 
 %%--------------------------------------------------------------------
@@ -67,5 +85,6 @@ init([]) -> {ok,{{one_for_one,1,30}, []}}.
 %%% Internal functions
 %%%===================================================================
 gen_child_spec(S) ->
-    {S, {inbound_phone_srv, start_link, [S]},
-     transient, 2000, worker, dynamic}.
+    #twilio{call_sid = CallSID} = S,
+    {CallSID, {inbound_phone_srv, start_link, [S]},
+     permanent, brutal_kill, worker, [inbound_phone_srv]}.
