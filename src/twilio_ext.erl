@@ -31,7 +31,7 @@ handle(Params) ->
             io:format("phone ringing...~n"),
             {A, B, C} = now(),
             random:seed(A, B, C),
-            N = random:uniform(2),
+            N = random:uniform(1),
             TwiML_EXT = twilio_ext:get_twiml_ext(N),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
@@ -40,10 +40,15 @@ handle(Params) ->
             ok
     end.
 
-get_twiml_ext(1) -> [#say{text="yowza"}];
-get_twiml_ext(2) -> [#say{text="bonza, dogface", language = "fr",
-                         voice = "woman"},
-                    #say{text = "now piss aff!"}].
+get_twiml_ext(1) -> [#say{text = "sorting out this"},
+                     #sms{text = "ping this pony boy",
+                          to = "+447776251669",
+                          from = "+441315101897"}];
+get_twiml_ext(2) -> [#say{text = "yowza"}];
+get_twiml_ext(3) -> [#say{text = "bonza, dogface",
+                          language = "fr",
+                          voice = "woman"},
+                     #say{text = "now piss aff!"}].
 
 log_terms(Terms, File) ->
     Str = lists:flatten(io_lib:format("~p.~n", [Terms])),
