@@ -36,7 +36,6 @@ answer_phone(Params, TwiML_EXT) ->
     ChildSpec = gen_child_spec(Params, TwiML_EXT),
     case supervisor:start_child(?MODULE, ChildSpec) of
         {ok, Pid} ->
-            io:format("Starting state machine with ~p~n", [TwiML_EXT]),
             io:format("call started...~n"),
             gen_server:call(Pid, {start_call, Params});
         Other ->
@@ -47,7 +46,6 @@ answer_phone(Params, TwiML_EXT) ->
 call_complete(Params) ->
     Call = Params#twilio.call_sid,
     Pid = get_pid(Call),
-    io:format("Pid is ~p~n", [Pid]),
     gen_server:call(Pid, {call_complete, Params}).
 
 %%--------------------------------------------------------------------
@@ -89,7 +87,6 @@ gen_child_spec(S, TwiML_EXT) ->
 
 get_pid(Call) ->
     Servers = supervisor:which_children(inbound_phone_sup),
-    io:format("Servers is ~p~n", [Servers]),
     case lists:keyfind(Call, 1, Servers) of
         false             -> exit("server doesn't exist");
         {Call, Pid, _, _} -> case Pid of
