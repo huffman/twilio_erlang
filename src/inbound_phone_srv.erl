@@ -12,7 +12,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -33,9 +33,9 @@
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link() ->
-    io:format("Starting inbound_phone_srv"),
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
+start_link(Params) ->
+    io:format("Starting inbound_phone_srv for ~p~n", [Params]),
+    gen_server:start_link(?MODULE, [Params], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -52,7 +52,8 @@ start_link() ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([]) ->
+init([_Params]) ->
+    io:format("In inbound_phone_srv:init~n"),
     {ok, #state{}}.
 
 %%--------------------------------------------------------------------

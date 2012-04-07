@@ -9,6 +9,7 @@
 
 -export([
          process_body/1,
+         process_proplist/1,
          country_code_to_prefix/1,
          country_code_to_country/1,
          prefix_to_country/1,
@@ -50,11 +51,14 @@ prefix_to_country_code(Prefix) ->
     {_Country, CC, Prefix} = lists:keyfind(Prefix, 3, ?CCLOOKUP),
     CC.
 
-process_body(Binary) ->
+process_body(Binary) when is_binary(Binary) ->
     List = binary_to_list(Binary),
     Elements = string:tokens(List, "&"),
     PropList = process(Elements, []),
     make_record(PropList).
+
+process_proplist(Proplist) ->
+    make_record(Proplist).
 
 make_record(PropList) ->
     make_r(PropList, #twilio{}, #twilio_called{}, #twilio_caller{},
@@ -156,6 +160,8 @@ fix_up({Rec, Number, City, Zip, State, [], CC, []}) ->
     {Rec, fix_number(Number, NewPrefix), City, Zip, State,
      Country, CC, "+" ++ NewPrefix}.
 
+fix_number(" " ++ Number, CC) ->
+    "0" ++ re:replace(Number, "^" ++ CC, "", [{return, list}]);
 fix_number("+" ++ Number, CC) ->
     "0" ++ re:replace(Number, "^" ++ CC, "", [{return, list}]).
 
