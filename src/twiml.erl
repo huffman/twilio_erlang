@@ -18,10 +18,13 @@
 
 -export([
          testing/0,
-         testing2/0
+         testing2/0,
+         testing3/0
         ]).
 
 -include("twilio.hrl").
+
+-define(DOLLAR, "$").
 
 %% @doc Encodes a set of twiml records as an XML document.
 encode(Elements) ->
@@ -208,8 +211,11 @@ comp3([#dial{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
                                     NewRank, []),
     NewRank2 = bump(NewRank),
     CloseDial = Fun("Dial", NewRank2),
+    io:format("D is ~p Rank2 is ~p~n", [D, Rank2]),
+    NewRec = Fun(D, Rank2),
+    io:format("NewRec is ~p~n", [NewRec]),
     comp3(T, ExitType, state, Fun, Rank2,
-          [CloseDial, NewBody, Fun(D, Rank2) | Acc]);
+          [CloseDial, NewBody, NewRec | Acc]);
 comp3([#response_EXT{} = R | T], ExitType, _Type, Fun, Rank, Acc) ->
     Rank2 = bump(Rank),
     NewRank = incr(Rank2),
@@ -294,8 +300,8 @@ make_fsm(Rec, Rank) when is_record(Rec, gather) ->
         {Rank, fix_up(encode_record(Rec#gather{body = []})),
          bump(incr(Rank))};
 make_fsm(Rec, Rank) when is_record(Rec, dial) ->
-        {Rank, fix_up(encode_record(Rec#dial{body = []})),
-         bump(incr(Rank))};
+    {Rank, fix_up(encode_record(Rec#dial{body = []})),
+     bump(incr(Rank))};
 make_fsm(Rec, Rank) when is_record(Rec, response_EXT) ->
         {Rank, Rec#response_EXT{body = []}, bump(incr(Rank))};
 make_fsm(Rec, Rank) when is_record(Rec, default_EXT) ->
@@ -305,10 +311,10 @@ make_fsm(Rec, Rank) when is_record(Rec, chainload_EXT) ->
 make_fsm(Rec, Rank) when is_record(Rec, goto_EXT) ->
     {Rank, Rec, Rec#goto_EXT.goto};
 make_fsm(List, Rank) when is_list(List) ->
-    {Rank,{xml, "<" ++ List ++ "/>"}, bump(Rank)}.
+    {Rank,{xml, "</" ++ List ++ ">"}, bump(Rank)}.
 
-fix_up({xml, XML}) -> ">/" ++ LMX = lists:reverse(XML),
-                      {xml, lists:reverse(LMX) ++ ">"}.
+fix_up({xml, XML}) -> {xml, re:replace(XML, "<\/[a-zA-Z]+>" ++ ?DOLLAR, "",
+ [{return, list}])}.
 
 print_html(_Element, _Rank) ->
     ok.
@@ -724,13 +730,19 @@ is_member(Label, [{SubLab, K, Vs} | T], Acc) ->
     is_member(Label, T, NewAcc).
 
 is_valid(Elements) ->
-    case validate(Elements) of
-        {ok, ok} -> true;
-        _        -> false
+    try
+        case validate(Elements) of
+            {ok, ok} -> true;
+            _        -> false
+        end
+    catch
+        _What:_How ->
+             false
     end.
 
 validate(Elements) ->
-    case lists:flatten(lists:reverse(lists:foldl(fun check/2, [], Elements))) of
+    case lists:flatten(lists:reverse(lists:foldl(fun check/2, [],
+                                                 Elements))) of
         []  -> {ok, ok};
         Err -> {error, Err}
     end.
@@ -1442,3 +1454,14 @@ testing2() ->
                                                  body = [SAY, CHAINLOAD,
                                                          PLAY, PAUSE,
                                                          GOTO, DIAL]}]}]).
+
+testing3() ->
+    DIAL = #dial{body=[#number{number="+4455222"}]},
+    case is_valid([DIAL]) of
+        false ->
+            io:format("~p is not valid~n", [DIAL]);
+        true  ->
+            io:format("Does ~p validate? ~p~n",
+                      [DIAL, validate([DIAL])]),
+            compile([DIAL])
+    end.
