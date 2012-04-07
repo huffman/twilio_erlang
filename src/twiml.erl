@@ -139,9 +139,8 @@ compile(Elements, Rank, fsm) ->
     comp2(Elements, Rank, fun make_fsm/2).
 
 comp2(Elements, Rank, Fun) ->
-    {NewType,  NewRank,  Output} = comp3(Elements, hangup,
-                                         'no-state', Fun, Rank, []),
-    io:format("Type is ~p NewRank is ~p~n", [NewType, NewRank]),
+    {_NewType,  _NewRank,  Output} = comp3(Elements, hangup,
+                                           'no-state', Fun, Rank, []),
     Output.
 
 % these records are terminals as well
@@ -156,7 +155,7 @@ comp3([H | _T], _ExitType, Type, Fun, Rank, Acc)
 % gather is also a terminal - our gathers always have a default or a repeat
 % value in them so they never drop through (hard to reason about for most
 % folk IMHO - YMMV but hell mend ye...
-comp3([#gather{} = G | _T], ExitType, _Type, Fun, Rank, Acc) ->
+comp3([#gather{} = G | _T], _ExitType, _Type, Fun, Rank, Acc) ->
     Rank2 = bump(Rank),
     NewRank = incr(Rank2),
     {Resp, Def, Repeat} = split_out(G#gather.after_EXT, [], [], []),
@@ -186,7 +185,7 @@ comp3([], hangup, Type, Fun, Rank, Acc) ->
                                        Rank, []),
     {NewType, NewRank, lists:flatten(lists:reverse([Hangup | Acc]))};
 % and if they don't we don't give 'em a hangup
-comp3([], nohangup, Type, Fun, Rank, Acc) ->
+comp3([], nohangup, Type, _Fun, Rank, Acc) ->
     {Type, Rank, lists:flatten(lists:reverse(Acc))};
 comp3([H | T], ExitType, Type, Fun, Rank, Acc)
   when is_record(H, say)
@@ -623,7 +622,6 @@ check_a2(#response_EXT{} = R, {NumD, _Acc1, Acc2}) ->
                     NAcc;
                 _N ->
                     Resp = R#response_EXT.response,
-                    io:format("Resp is ~p~n", [Resp]),
                     case length(Resp) of
                         NumD ->
                             NAcc;
@@ -1417,9 +1415,9 @@ testing() ->
     RESPONSE3  = #response_EXT{title = "snerk", response = "3",
                                body = [PAUSE, SAY, PLAY,
                                        GATHER]},
-    RESPONSE4  = #response_EXT{title = "sperk", response = "4",
+    _RESPONSE4  = #response_EXT{title = "sperk", response = "4",
                                body = [CHAINLOAD]},
-    DEFAULT    = #default_EXT{title = "plerk", body = [PLAY, SAY, FUNCTION]},
+    _DEFAULT    = #default_EXT{title = "plerk", body = [PLAY, SAY, FUNCTION]},
     _GOTO       = #goto_EXT{goto = "1.2"},
     GATHER2    = #gather{autoMenu_EXT = true, body = [SAY, PLAY],
                          after_EXT = [RESPONSE3, REPEAT]},
@@ -1429,16 +1427,16 @@ testing() ->
     compile([GATHER2]).
 
 testing2() ->
-    GATHER    = #gather{},
+    _GATHER    = #gather{},
     SAY       = #say{},
     PLAY      = #play{},
     PAUSE     = #pause{},
-    SMS       = #sms{from = "+123", to = "+345"},
+    _SMS       = #sms{from = "+123", to = "+345"},
     NUMBER    = #number{number = "+123"},
     DIAL      = #dial{body = [NUMBER]},
-    FUNCTION  = #function_EXT{title = "hey!",  module = bish, fn = bash},
+    _FUNCTION  = #function_EXT{title = "hey!",  module = bish, fn = bash},
     CHAINLOAD = #chainload_EXT{title = "ho!", module = bosh, fn = berk},
-    REPEAT    = #repeat_EXT{},
+    _REPEAT    = #repeat_EXT{},
     GOTO      = #goto_EXT{goto = "dddd"},
     validate([#gather{after_EXT = [#response_EXT{response = "1", title = "erk",
                                                  body = [SAY, CHAINLOAD,

@@ -12,7 +12,14 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/2]).
+-export([
+         start_link/2
+        ]).
+
+% export for tidying up
+-export([
+         delete_self/1
+        ]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -23,11 +30,16 @@
 -include("twilio.hrl").
 -include("twilio_web.hrl").
 
--record(state, {}).
+-record(state, {twiml_ext = null, initial_params = null, fsm = null,
+                history = []}).
 
 %%%===================================================================
 %%% API
 %%%===================================================================
+delete_self(CallSID) ->
+    ok = supervisor:terminate_child(inbound_phone_sup, CallSID),
+    ok = supervisor:delete_child(inbound_phone_sup, CallSID),
+    ok.
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -56,9 +68,18 @@ start_link(Params, TwiML) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([_Params, _TwiML_EXT]) ->
+init([Params, TwiML_EXT]) ->
+    FSM = case twiml:is_valid(TwiML_EXT) of
+                   false ->
+                       Tw = [#say{text = "sorry, this call has been setup "
+                                  ++ "incorrectly"}],
+                      twiml:compile(Tw);
+                   true ->
+                       twiml:compile(TwiML_EXT)
+               end,
     io:format("In inbound_phone_srv:init~n"),
-    {ok, #state{}}.
+    {ok, #state{twiml_ext = TwiML_EXT, initial_params = Params,
+               fsm = FSM, history = [{init, Params}]}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -79,9 +100,8 @@ handle_call(Request, _From, State) ->
         {call_complete, Rec} ->
             % we do nothing, but you might want to squirrell away the
             % duration for bill purposes
-            spawn(timer, apply_after, [1000, supervisor, terminate_child,
-                                       [inbound_phone_sup,
-                                        Rec#twilio.call_sid]]);
+            spawn(timer, apply_after, [1000, inbound_phone_srv, delete_self,
+                                       [Rec#twilio.call_sid]]);
         {Other, _Rec} ->
             io:format("Got ~p call in inbound_phone_srv~n", [Other])
     end,
