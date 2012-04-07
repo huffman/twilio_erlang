@@ -24,14 +24,18 @@
 -include("twilio_web.hrl").
 
 handle(Params) ->
-    log_terms(Params, "twilio.params.logx"),
+    log_terms(Params, "twilio.params.log"),
     Records = twilio_web_util:process_proplist(Params),
     case Records#twilio.call_status of
         "ringing" ->
+            io:format("phone ringing...~n"),
+            {A, B, C} = now(),
+            random:seed(A, B, C),
             N = random:uniform(2),
             TwiML_EXT = twilio_ext:get_twiml_ext(N),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
+            io:format("call completed...~n"),
             ok = inbound_phone_sup:call_complete(Records),
             ok
     end.

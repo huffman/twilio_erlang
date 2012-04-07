@@ -25,7 +25,6 @@ start(Port) ->
 
 %% @doc Mochiweb loop, handling incoming twilio requests.
 loop(Req) ->
-    io:format("Call arrived...."),
     case Req:get(method) of
         'GET' ->
             Params = Req:parse_qs();
