@@ -31,11 +31,12 @@ handle(Params) ->
             io:format("phone ringing...~n"),
             {A, B, C} = now(),
             random:seed(A, B, C),
-            _N = random:uniform(7),
+            _N = random:uniform(8),
             TwiML_EXT = twilio_ext:get_twiml_ext(8),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
             io:format("call completed...~n"),
+            twilio:pretty_print(Records),
             ok = inbound_phone_sup:call_complete(Records),
             ok
     end.
