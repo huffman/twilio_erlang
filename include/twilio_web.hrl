@@ -1,4 +1,11 @@
 %% Twilio records
+-record(twilio_recording,
+        {
+          recording_sid,
+          recording_duration,
+          recording_url
+         }).
+
 -record(twilio_inprogress,
         {
           digits,
@@ -69,7 +76,8 @@
           from            = null,
           to              = null,
           call_duration   = null,
-          inprogress      = null
+          inprogress      = null,
+          recording       = null
          }).
 
 % Country Codes For Lookup

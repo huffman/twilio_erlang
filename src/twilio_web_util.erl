@@ -62,86 +62,104 @@ process_proplist(Proplist) ->
 
 make_record(PropList) ->
     make_r(PropList, #twilio{}, #twilio_called{}, #twilio_caller{},
-           #twilio_from{}, #twilio_to{}, #twilio_duration{}, #twilio_inprogress{}).
+           #twilio_from{}, #twilio_to{}, #twilio_duration{}, #twilio_inprogress{}, #twilio_recording{}).
 
-make_r([], Twilio, Called, Caller, From, To, Dr, Ip) ->
+make_r([], Twilio, Called, Caller, From, To, Dr, Ip, Rc) ->
     Twilio#twilio{called = normalise(Called, #twilio_called{}),
                   caller = normalise(Caller, #twilio_caller{}),
                   from   = normalise(From,   #twilio_from{}),
                   to     = normalise(To,     #twilio_to{}),
                   call_duration = normalise2(Dr, #twilio_duration{}),
-                  inprogress    = normalise2(Ip, #twilio_inprogress{})};
+                  inprogress    = normalise2(Ip, #twilio_inprogress{}),
+                  recording     = normalise2(Rc, #twilio_recording{})
+                 };
 % main twilio record
-make_r([{"AccountSid", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw#twilio{account_sid = ?UQ(Val)}, Cd, Cr, Fr, To, Dr, Ip);
-make_r([{"ApplicationSid", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw#twilio{application_sid = ?UQ(Val)}, Cd, Cr, Fr, To, Dr, Ip);
-make_r([{"ApiVersion", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw#twilio{api_version = ?UQ(Val)}, Cd, Cr, Fr, To, Dr, Ip);
-make_r([{"Direction", Val}  | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw#twilio{direction = ?UQ(Val)},   Cd, Cr, Fr, To, Dr, Ip);
-make_r([{"CallSid", Val}    | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw#twilio{call_sid = ?UQ(Val)},    Cd, Cr, Fr, To, Dr, Ip);
-make_r([{"CallStatus", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw#twilio{call_status = ?UQ(Val)}, Cd, Cr, Fr, To, Dr, Ip);
+make_r([{"AccountSid", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw#twilio{account_sid = ?UQ(Val)}, Cd, Cr, Fr, To, Dr, Ip, Rc);
+make_r([{"ApplicationSid", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw#twilio{application_sid = ?UQ(Val)},
+           Cd, Cr, Fr, To, Dr, Ip, Rc);
+make_r([{"ApiVersion", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw#twilio{api_version = ?UQ(Val)}, Cd, Cr, Fr, To, Dr, Ip, Rc);
+make_r([{"Direction", Val}  | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw#twilio{direction = ?UQ(Val)},   Cd, Cr, Fr, To, Dr, Ip, Rc);
+make_r([{"CallSid", Val}    | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw#twilio{call_sid = ?UQ(Val)},    Cd, Cr, Fr, To, Dr, Ip, Rc);
+make_r([{"CallStatus", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw#twilio{call_status = ?UQ(Val)}, Cd, Cr, Fr, To, Dr, Ip, Rc);
 % called records
-make_r([{"Called", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd#twilio_called{number = ?UQ(Val)}, Cr, Fr, To, Dr, Ip);
-make_r([{"CalledCity", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd#twilio_called{city = ?UQ(Val)}, Cr, Fr, To, Dr, Ip);
-make_r([{"CalledCountry", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd#twilio_called{country_code = ?UQ(Val)}, Cr, Fr, To, Dr, Ip);
-make_r([{"CalledState", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd#twilio_called{state = ?UQ(Val)}, Cr, Fr, To, Dr, Ip);
-make_r([{"CalledZip", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd#twilio_called{zip = ?UQ(Val)}, Cr, Fr, To, Dr, Ip);
+make_r([{"Called", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd#twilio_called{number = ?UQ(Val)}, Cr, Fr, To, Dr, Ip, Rc);
+make_r([{"CalledCity", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd#twilio_called{city = ?UQ(Val)}, Cr, Fr, To, Dr, Ip, Rc);
+make_r([{"CalledCountry", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd#twilio_called{country_code = ?UQ(Val)},
+           Cr, Fr, To, Dr, Ip, Rc);
+make_r([{"CalledState", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd#twilio_called{state = ?UQ(Val)}, Cr, Fr, To, Dr, Ip, Rc);
+make_r([{"CalledZip", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd#twilio_called{zip = ?UQ(Val)}, Cr, Fr, To, Dr, Ip, Rc);
 % caller records
-make_r([{"Caller", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr#twilio_caller{number = ?UQ(Val)}, Fr, To, Dr, Ip);
-make_r([{"CallerCity", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr#twilio_caller{city = ?UQ(Val)}, Fr, To, Dr, Ip);
-make_r([{"CallerCountry", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr#twilio_caller{country_code = ?UQ(Val)}, Fr, To, Dr, Ip);
-make_r([{"CallerState", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr#twilio_caller{state = ?UQ(Val)}, Fr, To, Dr, Ip);
-make_r([{"CallerZip", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr#twilio_caller{zip = ?UQ(Val)}, Fr, To, Dr, Ip);
+make_r([{"Caller", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr#twilio_caller{number = ?UQ(Val)}, Fr, To, Dr, Ip, Rc);
+make_r([{"CallerCity", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr#twilio_caller{city = ?UQ(Val)}, Fr, To, Dr, Ip, Rc);
+make_r([{"CallerCountry", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr#twilio_caller{country_code = ?UQ(Val)},
+           Fr, To, Dr, Ip, Rc);
+make_r([{"CallerState", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr#twilio_caller{state = ?UQ(Val)}, Fr, To, Dr, Ip, Rc);
+make_r([{"CallerZip", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr#twilio_caller{zip = ?UQ(Val)}, Fr, To, Dr, Ip, Rc);
 % from records
-make_r([{"From", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr#twilio_from{number = ?UQ(Val)}, To, Dr, Ip);
-make_r([{"FromCity", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr#twilio_from{city = ?UQ(Val)}, To, Dr, Ip);
-make_r([{"FromCountry", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr#twilio_from{country_code = ?UQ(Val)}, To, Dr, Ip);
-make_r([{"FromState", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr#twilio_from{state = ?UQ(Val)}, To, Dr, Ip);
-make_r([{"FromZip", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr#twilio_from{zip = ?UQ(Val)}, To, Dr, Ip);
+make_r([{"From", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr#twilio_from{number = ?UQ(Val)}, To, Dr, Ip, Rc);
+make_r([{"FromCity", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr#twilio_from{city = ?UQ(Val)}, To, Dr, Ip, Rc);
+make_r([{"FromCountry", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr#twilio_from{country_code = ?UQ(Val)},
+           To, Dr, Ip, Rc);
+make_r([{"FromState", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr#twilio_from{state = ?UQ(Val)}, To, Dr, Ip, Rc);
+make_r([{"FromZip", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr#twilio_from{zip = ?UQ(Val)}, To, Dr, Ip, Rc);
 % To records
-make_r([{"To", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{number = ?UQ(Val)}, Dr, Ip);
-make_r([{"ToCity", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{city = ?UQ(Val)}, Dr, Ip);
-make_r([{"ToCountry", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{country_code = ?UQ(Val)}, Dr, Ip);
-make_r([{"ToState", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{state = ?UQ(Val)}, Dr, Ip);
-make_r([{"ToZip", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{zip = ?UQ(Val)}, Dr, Ip);
+make_r([{"To", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{number = ?UQ(Val)}, Dr, Ip, Rc);
+make_r([{"ToCity", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{city = ?UQ(Val)}, Dr, Ip, Rc);
+make_r([{"ToCountry", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{country_code = ?UQ(Val)},
+           Dr, Ip, Rc);
+make_r([{"ToState", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{state = ?UQ(Val)}, Dr, Ip, Rc);
+make_r([{"ToZip", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To#twilio_to{zip = ?UQ(Val)}, Dr, Ip, Rc);
 % call duration record
-make_r([{"Duration", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr, To, Dr#twilio_duration{duration = Val}, Ip);
-make_r([{"CallDuration", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr, To, Dr#twilio_duration{call_duration = Val}, Ip);
+make_r([{"Duration", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To, Dr#twilio_duration{duration = Val}, Ip, Rc);
+make_r([{"CallDuration", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To, Dr#twilio_duration{call_duration = Val},
+           Ip, Rc);
 % inprogress record
-make_r([{"Digits", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr, To, Dr, Ip#twilio_inprogress{digits = Val});
-make_r([{"msg", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
-    make_r(T, Tw, Cd, Cr, Fr, To, Dr, Ip#twilio_inprogress{msg = Val});
+make_r([{"Digits", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To, Dr, Ip#twilio_inprogress{digits = Val}, Rc);
+make_r([{"msg", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To, Dr, Ip#twilio_inprogress{msg = Val}, Rc);
+% recording details
+make_r([{"RecordingSid", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To, Dr, Ip,
+           Rc#twilio_recording{recording_sid = Val});
+make_r([{"RecordingDuration", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To, Dr, Ip,
+           Rc#twilio_recording{recording_duration = Val});
+make_r([{"RecordingUrl", Val} | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
+    make_r(T, Tw, Cd, Cr, Fr, To, Dr, Ip,
+           Rc#twilio_recording{recording_url = Val});
 % user supplied parameters
-make_r([H | T], Tw, Cd, Cr, Fr, To, Dr, Ip) ->
+make_r([H | T], Tw, Cd, Cr, Fr, To, Dr, Ip, Rc) ->
     #twilio{custom_params = CP} = Tw,
-    make_r(T, Tw#twilio{custom_params = [H | CP]}, Cd, Cr, Fr, To, Dr, Ip).
+    make_r(T, Tw#twilio{custom_params = [H | CP]}, Cd, Cr, Fr, To, Dr, Ip, Rc).
 
 % if the record is the same as the empty record null it out
 normalise(Rec, Rec) -> null;
@@ -188,6 +206,7 @@ pretty_print(#twilio{} = Twilio) ->
     pretty_p2(Twilio#twilio.to, to),
     pretty_p_call_dur(Twilio#twilio.call_duration),
     pretty_p_inprog(Twilio#twilio.inprogress),
+    pretty_p_rec(Twilio#twilio.recording),
     io:format("***End of Twilio Record*************************~n").
 
 pretty_p2(null, Type) -> io:format("~n~p Record is null~n", [Type]);
@@ -212,6 +231,16 @@ pretty_p_inprog(#twilio_inprogress{digits = D, msg = M}) ->
     io:format("~n"),
     io:format("in progress Digits is ~p~n", [D]),
     io:format("in progress Msg is    ~p~n", [M]).
+
+pretty_p_rec(null) -> io:format("~nNo recording record~n");
+pretty_p_rec(#twilio_recording{recording_sid = Rs,
+                               recording_duration = Rd,
+                               recording_url = Ru}) ->
+    io:format("~n"),
+    io:format("recording Sid is      ~p~n", [Rs]),
+    io:format("recording Duration is ~p~n", [Rd]),
+    io:format("recording URL is      ~p~n", [Ru]).
+
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").

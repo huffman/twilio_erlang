@@ -17,7 +17,8 @@
 -export([
          start_link/0,
          answer_phone/2,
-         call_complete/1
+         call_complete/1,
+         recording_notification/1
          %call_in_progress/2
         ]).
 
@@ -47,6 +48,12 @@ call_complete(Params) ->
     Call = Params#twilio.call_sid,
     Pid = get_pid(Call),
     gen_server:call(Pid, {call_complete, Params}).
+
+-spec recording_notification(#twilio{}) -> pid() | string().
+recording_notification(Params) ->
+    Call = Params#twilio.call_sid,
+    Pid = get_pid(Call),
+    gen_server:call(Pid, {recording_notification, Params}).
 
 %%--------------------------------------------------------------------
 %% @doc
