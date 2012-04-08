@@ -45,7 +45,11 @@ handle(Params) ->
                     io:format("notification of recording...~n"),
                     ok = inbound_phone_sup:recording_notification(Records),
                     ok
-            end
+            end;
+        Other ->
+            io:format("Other with ~p~n", [Other]),
+             "<?xml version=\"1.0\" encoding=\"UTF-8\"?><Response>"
+                ++ "<Say>banjo</Say></Response>"
     end.
 
 get_twiml_ext(N) ->
