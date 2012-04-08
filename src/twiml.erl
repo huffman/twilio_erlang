@@ -144,17 +144,17 @@ to_xmerl_element(#conference{} = C) ->
 remove_undefined(Attrs) ->
     [Attr || {_, Value} = Attr <- Attrs, Value =/= undefined].
 
-compile(Elements) ->
+compile(Elements) when is_list(Elements) ->
     compile(Elements, "0", fsm).
 
-compile(Elements, Type) ->
+compile(Elements, Type) when is_list(Elements) ->
     compile(Elements, "0", Type).
 
-compile(Elements, Rank, html) ->
+compile(Elements, Rank, html) when is_list(Elements) ->
     comp2(Elements, Rank, fun print_html/2);
-compile(Elements, Rank, ascii) ->
+compile(Elements, Rank, ascii) when is_list(Elements) ->
     comp2(Elements, Rank, fun print_ascii/2);
-compile(Elements, Rank, fsm) ->
+compile(Elements, Rank, fsm) when is_list(Elements) ->
     comp2(Elements, Rank, fun make_fsm/2).
 
 comp2(Elements, Rank, Fun) ->
@@ -1538,4 +1538,11 @@ testing5() ->
     io:format(Ret),
     compile([SAY, PLAY]).
 
-testing6() -> encode([#dial{action="/do_stuff", body="1234833"}]).
+testing6() -> CONFERENCE = #conference{muted = false, beep = true,
+                                       startConferenceOnEnter = true,
+                                       endConferenceOnExit = true,
+                                       conference = "bingo master"},
+              DIAL = #dial{body = [CONFERENCE]},
+              io:format("is valid? ~p~n", [is_valid([DIAL])]),
+              compile([DIAL]).
+

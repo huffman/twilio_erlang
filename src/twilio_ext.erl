@@ -31,8 +31,8 @@ handle(Params) ->
             io:format("phone ringing...~n"),
             {A, B, C} = now(),
             random:seed(A, B, C),
-            _N = random:uniform(6),
-            TwiML_EXT = twilio_ext:get_twiml_ext(6),
+            _N = random:uniform(7),
+            TwiML_EXT = twilio_ext:get_twiml_ext(7),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
             io:format("call completed...~n"),
@@ -64,7 +64,11 @@ get_twiml2(4) -> [#say{text = "hot diggity",
                        voice= "woman"}];
 get_twiml2(5) -> [#play{url = "http://files.hypernumbers.com/music/"
                         ++ "RockyMountainMedleyPart1.mp3"}];
-get_twiml2(6) -> [#dial{body = [#number{number = "+447776301539"}]}].
+get_twiml2(6) -> [#dial{body = [#number{number = "+447776301539"}]}];
+get_twiml2(7) -> [#dial{body = [#conference{muted = false, beep = true,
+                                            startConferenceOnEnter = true,
+                                            endConferenceOnExit = true,
+                                            conference = "bingo master"}]}].
 
 log_terms(Terms, File) ->
     Str = lists:flatten(io_lib:format("~p.~n", [Terms])),
