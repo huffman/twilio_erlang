@@ -32,8 +32,8 @@ handle(Params) ->
             io:format("phone ringing...~n"),
             {A, B, C} = now(),
             random:seed(A, B, C),
-            _N = random:uniform(7),
-            TwiML_EXT = twilio_ext:get_twiml_ext(8),
+            _N = random:uniform(9),
+            TwiML_EXT = twilio_ext:get_twiml_ext(9),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
             case Records#twilio.recording of
@@ -50,6 +50,7 @@ handle(Params) ->
 
 get_twiml_ext(N) ->
     TwiML = get_twiml2(N),
+    io:format("TwiML is ~p~n", [TwiML]),
     case twiml:is_valid(TwiML) of
         false -> exit("invalid TwiML");
         true -> TwiML
@@ -80,7 +81,15 @@ get_twiml2(7) -> [#say{text="welcome to a simple conference call. "
                                             endConferenceOnExit = true,
                                             conference = "bingo master"}]}];
 get_twiml2(8) -> [#say{text = "leave a message after the tone"},
-                  #record{playBeep = true, maxLength = 60}].
+                  #record{playBeep = true, maxLength = 60}];
+get_twiml2(9) -> SAY1 = #say{text="erken"},
+                 RESPONSE1 = #response_EXT{title = "erken", response = "1",
+                                           body = [SAY1]},
+                 SAY2 = #say{text="jerken"},
+                 RESPONSE2 = #response_EXT{title = "jerken", response = "2",
+                                           body = [SAY2]},
+                 [#gather{numDigits = "1", autoMenu_EXT = true,
+                          after_EXT = [RESPONSE1, RESPONSE2]}].
 
 log_terms(Terms, File) ->
     Str = lists:flatten(io_lib:format("~p.~n", [Terms])),

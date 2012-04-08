@@ -647,14 +647,18 @@ check_a2(#response_EXT{} = R, {NumD, _Acc1, Acc2}) ->
                 undefined ->
                     NAcc;
                 _N ->
+                    NumD2 = if
+                                is_integer(NumD) -> NumD;
+                                is_list(NumD)    -> list_to_integer(NumD)
+                            end,
                     Resp = R#response_EXT.response,
                     case length(Resp) of
-                        NumD ->
+                        NumD2 ->
                             NAcc;
                         _ ->
                             [io_lib:format("Response ~s must be ~p digits "
                                            ++ "long in #response_EXT{}~sn",
-                                           [Resp, NumD, "~"]) | NAcc]
+                                           [Resp, NumD2, "~"]) | NAcc]
                     end
             end,
     NAcc3 = lists:foldl(fun check/2, NAcc2, R#response_EXT.body),
@@ -732,11 +736,16 @@ check_bool(Val, Fld, Rec, Acc) ->
 check_int(undefined, _Min, _Fld, _Rec, Acc) ->
     Acc;
 check_int(Val, Min, Fld, Rec, Acc) ->
+    Val2 = if
+               is_integer(Val) -> Val;
+               is_list(Val)    -> list_to_integer(Val)
+           end,
     if
-        is_integer(Val) andalso Val >= Min ->
+        Val2 >= Min ->
             Acc;
         true ->
-            [io_lib:format("Invalid ~p in ~p ~p~sn", [Fld, Rec, Val, "~"]) | Acc]
+            [io_lib:format("Invalid ~p in ~p ~p~sn",
+                           [Fld, Rec, Val, "~"]) | Acc]
     end.
 
 is_member(_, [], Acc) ->
@@ -1538,11 +1547,16 @@ testing5() ->
     io:format(Ret),
     compile([SAY, PLAY]).
 
-testing6() -> CONFERENCE = #conference{muted = false, beep = true,
-                                       startConferenceOnEnter = true,
-                                       endConferenceOnExit = true,
-                                       conference = "bingo master"},
-              DIAL = #dial{body = [CONFERENCE]},
-              io:format("is valid? ~p~n", [is_valid([DIAL])]),
-              compile([DIAL]).
-
+testing6() ->
+    SAY1 = #say{text="erken"},
+    RESPONSE1 = #response_EXT{title = "erken", response = "1",
+                             body = [SAY1]},
+    SAY2 = #say{text="jerken"},
+    RESPONSE2 = #response_EXT{title = "jerken", response = "2",
+                             body = [SAY2]},
+    GATHER = #gather{numDigits = "1", autoMenu_EXT = true,
+                     after_EXT = [RESPONSE1, RESPONSE2]},
+    io:format("~p~n", [is_valid([GATHER])]),
+    {_, Ret} = validate([GATHER]),
+    io:format("Ret is ~p~n", [Ret]),
+    compile([GATHER]).
