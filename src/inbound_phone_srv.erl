@@ -166,7 +166,8 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 execute(State, Action) ->
     #state{currentstate = CS, fsm = FSM, history = Hist} = State,
-    {NewS, Reply} = exec2(run, CS, FSM, []),
+    io:format("In execute FSM is ~p~nCS is ~p~n", [FSM, CS]),
+    {NewS, Reply} = exec2(next, CS, FSM, []),
     {Reply, State#state{currentstate = NewS,
                        history = [Action | Hist]}}.
 
@@ -175,21 +176,36 @@ exec2(wait, CS, _FSM, Acc) ->
     Reply = "<?xml version=\"1.0\"?><Response>"
         ++ Msg ++ "</Response>",
     {CS, Reply};
-exec2(run, CS, FSM, Acc) ->
+exec2(next, CS, FSM, Acc) ->
     case lists:keyfind(CS, 1, FSM) of
-        false ->
-            exit("invalid state");
-        {CS, TwiML, NewState} ->
-            case {TwiML, NewState} of
-                {{xml, "<Gather/>" = G}, _} ->
-                    exec2(wait, NewState, FSM, [G | Acc]);
-                {{xml, X}, exit} ->
-                    exec2(wait, NewState, FSM, [X | Acc]);
-                {{xml, X}, _} ->
-                    exec2(run, NewState, FSM, [X | Acc]);
-                Other ->
-                    io:format("Other is ~p~n", [Other]),
-                    exec2(wait, CS, FSM, Acc)
-            end
+        false               -> exit("invalid state in exec2");
+        % these are the terminal clauses
+        {CS, TwiML, exit}   -> {CS, lists:reverse([TwiML | Acc])};
+        {CS, TwiML, wait}   -> {CS, lists:reverse([TwiML | Acc])};
+        {CS, TwiML, next}   -> Next = get_next(CS, FSM, fun twiml:bump/1,
+                                               fun twiml:unbump/1),
+                               exec2(next, Next, FSM, [TwiML | Acc]);
+        {CS, TwiML, into}   -> Into = get_next(CS, FSM, fun incr/1,
+                                               fun twiml:decr/1),
+                               exec2(next, Into, FSM, [TwiML | Acc]);
+        {CS, TwiML, repeat} -> Into = get_next(CS, FSM, fun twiml:unbump/1,
+                                              fun twiml:decr/1),
+                               exec2(next, Into, FSM, [TwiML | Acc]);
+        {_CS, _TwiML, goto}   -> exit("fix me...")
     end.
 
+get_next(CS, FSM, Fun1, Fun2) ->
+    Next = Fun1(CS),
+    case lists:keyfind(Next, 1, FSM) of
+        false ->
+            Next2 = Fun2(CS),
+            case lists:keyfind(Next2, 1, FSM) of
+                false         -> exit("invalid state in get_next");
+                {State, _, _} -> State
+            end;
+        {State2, _, _} -> State2
+    end.
+
+% the twiml compiler passes in a new state like "1.0" and then increments it
+% on the pass - we don't, so we have to increment and bump in a oner
+incr(CS) -> twiml:bump(twiml:incr(CS)).
