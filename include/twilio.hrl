@@ -15,48 +15,48 @@
           action         :: string(),
           method         :: atom(),
           timeout        :: integer(),
-          finish_on_key  :: string(),
-          num_digits     :: integer(),
+          finishOnKey    :: string(),
+          numDigits      :: integer(),
           body = []      :: [tuple()],
           autoMenu_EXT   :: boolean(),
           after_EXT = [] :: [tuple()]
          }).
 
 -record(record, {
-          action              :: string(),
-          method              :: atom(),
-          timeout             :: integer(),
-          finish_on_key       :: string(),
-          max_length          :: integer(),
-          transcribe          :: boolean(),
-          transcribe_callback :: string(),
-          play_beep           :: boolean()
+          action             :: string(),
+          method             :: atom(),
+          timeout            :: integer(),
+          finishOnKey        :: string(),
+          maxLength          :: integer(),
+          transcribe         :: boolean(),
+          transcribeCallback :: string(),
+          playBeep           :: boolean()
          }).
 
 -record(number, {
-          send_digits :: string(),
+          sendDigits  :: string(),
           url         :: string(),
           number = "" :: string()
          }).
 
 -record(dial, {
-          action         :: string(),
-          method         :: atom(),
-          timeout        :: integer(),
-          hangup_on_star :: boolean(),
-          time_limit     :: integer(),
-          caller_id      :: string(),
-          record         :: boolean(),
-          body = ""      :: string() | #number{}
+          action       :: string(),
+          method       :: atom(),
+          timeout      :: integer(),
+          hangupOnStar :: boolean(),
+          timeLimit    :: integer(),
+          callerId     :: string(),
+          record       :: boolean(),
+          body = ""    :: string() | #number{}
          }).
 
 -record(sms, {
-          to              :: string(),
-          from            :: string(),
-          action          :: string(),
-          method          :: atom(),
-          status_callback :: string(),
-          text = ""       :: string()
+          to             :: string(),
+          from           :: string(),
+          action         :: string(),
+          method         :: atom(),
+          statusCallback :: string(),
+          text = ""      :: string()
          }).
 
 % redirect record is not required or supported in Extended TwiML
