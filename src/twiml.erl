@@ -13,24 +13,29 @@
          is_valid/1,
          compile/1,
          compile/2,
-         compile/3
+         compile/3,
+         bump/1,
+         unbump/1,
+         incr/1,
+         decr/1
         ]).
 
 -export([
          testing/0,
          testing2/0,
          testing3/0,
-         testing4/0
+         testing4/0,
+         testing5/0
         ]).
 
 -include("twilio.hrl").
 
--define(DOLLAR, "$").
+-define(DOLLAR, "$"). %" for the code colouring
 
 %% @doc Encodes a set of twiml records as an XML document.
-encode(Elements) ->
-    Content = [{'Response', [], [to_xmerl_element(El) || El <- Elements]}],
-    xmerl:export_simple(Content, xmerl_xml).
+        encode(Elements) ->
+               Content = [{'Response', [], [to_xmerl_element(El) || El <- Elements]}],
+               xmerl:export_simple(Content, xmerl_xml).
 
 encode_record(Record) ->
     El = xmerl:export_simple([to_xmerl_element(Record)], xmerl_xml),
@@ -156,9 +161,9 @@ comp3([H | _T], _ExitType, Type, Fun, Rank, Acc)
        orelse is_record(H, goto_EXT) ->
     Rank2 = bump(Rank),
     {Type, Rank2, lists:flatten(lists:reverse([Fun(H, Rank2) | Acc]))};
-% gather is also a terminal - our gathers always have a default or a repeat
+% gather is also a terminal- our gathers always have a default or a repeat
 % value in them so they never drop through (hard to reason about for most
-% folk IMHO - YMMV but hell mend ye...
+% folk IMHO - YMMV, but hell mend ye...)
 comp3([#gather{} = G | _T], _ExitType, _Type, Fun, Rank, Acc) ->
     Rank2 = bump(Rank),
     NewRank = incr(Rank2),
@@ -208,10 +213,10 @@ comp3([#dial{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
     Rank2 = bump(Rank),
     NewRank = incr(Rank2),
     % we don't want dial to terminate with a hangup
-    {_, _NewRank2, NewBody} = comp3(D#dial.body, nohangup, state, Fun,
+    {_, NewRank2, NewBody} = comp3(D#dial.body, nohangup, state, Fun,
                                     NewRank, []),
-    NewRank2 = bump(NewRank),
-    CloseDial = Fun("Dial", NewRank2),
+    NewRank3 = bump(NewRank2),
+    CloseDial = Fun("Dial", NewRank3),
     NewRec = Fun(D, Rank2),
     comp3(T, ExitType, state, Fun, Rank2,
           [CloseDial, NewBody, NewRec | Acc]);
@@ -292,28 +297,34 @@ make_fsm(Rec, Rank) when is_record(Rec, say)
                          orelse is_record(Rec, reject)
                          orelse is_record(Rec, client)
                          orelse is_record(Rec, conference) ->
-        {Rank, encode_record(Rec), bump(Rank)};
+    {Rank, encode_record(Rec), next};
 make_fsm(Rec, Rank) when is_record(Rec, function_EXT) ->
-        {Rank, Rec, bump(Rank)};
+    {Rank, Rec, repeat};
 make_fsm(Rec, Rank) when is_record(Rec, gather) ->
-        {Rank, fix_up(encode_record(Rec#gather{body = []})),
-         bump(incr(Rank))};
+    {Rank, fix_up(encode_record(Rec#gather{body = []})), into};
 make_fsm(Rec, Rank) when is_record(Rec, dial) ->
-    {Rank, fix_up(encode_record(Rec#dial{body = []})),
-     bump(incr(Rank))};
+    {Rank, fix_up(encode_record(Rec#dial{body = []})), into};
 make_fsm(Rec, Rank) when is_record(Rec, response_EXT) ->
-        {Rank, Rec#response_EXT{body = []}, bump(incr(Rank))};
+    {Rank, Rec#response_EXT{body = []}, into};
 make_fsm(Rec, Rank) when is_record(Rec, default_EXT) ->
-        {Rank, Rec#default_EXT{body = []}, bump(incr(Rank))};
+    {Rank, Rec#default_EXT{body = []}, next};
 make_fsm(Rec, Rank) when is_record(Rec, chainload_EXT) ->
-        {Rank, Rec, null};
+    {Rank, Rec, repeat};
 make_fsm(Rec, Rank) when is_record(Rec, goto_EXT) ->
     {Rank, Rec, Rec#goto_EXT.goto};
 make_fsm(List, Rank) when is_list(List) ->
-    {Rank,{xml, "</" ++ List ++ ">"}, bump(Rank)}.
+    {Rank,{xml, "</" ++ List ++ ">"}, wait}.
 
-fix_up({xml, XML}) -> {xml, re:replace(XML, "<\/[a-zA-Z]+>" ++ ?DOLLAR, "",
- [{return, list}])}.
+fix_up({xml, XML}) ->
+    % might come back as <blah></blah> or <bleh/> need to fix up both
+    XML2 = re:replace(XML, "<\/[a-zA-Z]+>" ++ ?DOLLAR, "",
+                      [{return, list}]),
+    LMX = lists:reverse(XML2),
+    XML3 = case LMX of
+               ">/" ++ LMX2 -> lists:reverse(LMX2) ++ ">";
+               _            -> XML2
+           end,
+    {xml, XML3}.
 
 print_html(_Element, _Rank) ->
     ok.
@@ -733,7 +744,7 @@ is_valid(Elements) ->
         end
     catch
         _What:_How ->
-             false
+            false
     end.
 
 validate(Elements) ->
@@ -753,6 +764,9 @@ unbump(Rank) ->
     string:join(lists:reverse(H), ".").
 
 incr(Rank) -> Rank ++ ".0".
+decr(Rank) -> List = string:tokens(Rank, "."),
+              [_ | Rest]  = lists:reverse(List),
+              string:join(lists:reverse(Rest), ".").
 
 %-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -1424,7 +1438,7 @@ testing() ->
                                body = [PAUSE, SAY, PLAY,
                                        GATHER]},
     _RESPONSE4  = #response_EXT{title = "sperk", response = "4",
-                               body = [CHAINLOAD]},
+                                body = [CHAINLOAD]},
     _DEFAULT    = #default_EXT{title = "plerk", body = [PLAY, SAY, FUNCTION]},
     _GOTO       = #goto_EXT{goto = "1.2"},
     GATHER2    = #gather{autoMenu_EXT = true, body = [SAY, PLAY],
@@ -1458,6 +1472,8 @@ testing3() ->
         false ->
             io:format("~p is not valid~n", [TwiML]);
         true  ->
+            Ret = compile(TwiML, "0", ascii),
+            io:format(Ret),
             compile(TwiML)
     end.
 
@@ -1466,9 +1482,9 @@ testing4() ->
     PLAY     = #play{url = "some file"},
     REPEAT   = #repeat_EXT{},
     RESPONSE = #response_EXT{title = "berk", response = "1",
-                               body = [SAY, PLAY]},
+                             body = [SAY, PLAY]},
     GATHER   = #gather{autoMenu_EXT = true, body = [SAY, PLAY],
-                         after_EXT = [RESPONSE, REPEAT]},
+                       after_EXT = [RESPONSE, REPEAT]},
 
     TwiML = [GATHER],
     validate(TwiML),
@@ -1478,3 +1494,10 @@ testing4() ->
         true  ->
             compile(TwiML)
     end.
+
+testing5() ->
+    SAY = #say{text = "berk"},
+    PLAY = #play{url = "some file"},
+    Ret = compile([SAY, PLAY], "0", ascii),
+    io:format(Ret),
+    compile([SAY, PLAY]).
