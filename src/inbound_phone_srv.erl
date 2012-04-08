@@ -180,18 +180,20 @@ exec2(next, CS, FSM, Acc) ->
     case lists:keyfind(CS, 1, FSM) of
         false               -> exit("invalid state in exec2");
         % these are the terminal clauses
-        {CS, TwiML, exit}   -> {CS, lists:reverse([TwiML | Acc])};
-        {CS, TwiML, wait}   -> {CS, lists:reverse([TwiML | Acc])};
-        {CS, TwiML, next}   -> Next = get_next(CS, FSM, fun twiml:bump/1,
+        {CS, {xml, X}, exit}   -> Reply = wrap(lists:reverse([X | Acc])),
+                                  {CS, Reply};
+        {CS, {xml, X}, wait}   -> Reply = wrap(lists:reverse([X | Acc])),
+                                  {CS, Reply};
+        {CS, {xml, X}, next}   -> Next = get_next(CS, FSM, fun twiml:bump/1,
                                                fun twiml:unbump/1),
-                               exec2(next, Next, FSM, [TwiML | Acc]);
-        {CS, TwiML, into}   -> Into = get_next(CS, FSM, fun incr/1,
+                               exec2(next, Next, FSM, [X | Acc]);
+        {CS, {xml, X}, into}   -> Into = get_next(CS, FSM, fun incr/1,
                                                fun twiml:decr/1),
-                               exec2(next, Into, FSM, [TwiML | Acc]);
-        {CS, TwiML, repeat} -> Into = get_next(CS, FSM, fun twiml:unbump/1,
+                               exec2(next, Into, FSM, [X | Acc]);
+        {CS, {xml, X}, repeat} -> Into = get_next(CS, FSM, fun twiml:unbump/1,
                                               fun twiml:decr/1),
-                               exec2(next, Into, FSM, [TwiML | Acc]);
-        {_CS, _TwiML, goto}   -> exit("fix me...")
+                               exec2(next, Into, FSM, [X | Acc]);
+        {_CS, {xml, _X}, goto}   -> exit("fix me...")
     end.
 
 get_next(CS, FSM, Fun1, Fun2) ->
@@ -209,3 +211,6 @@ get_next(CS, FSM, Fun1, Fun2) ->
 % the twiml compiler passes in a new state like "1.0" and then increments it
 % on the pass - we don't, so we have to increment and bump in a oner
 incr(CS) -> twiml:bump(twiml:incr(CS)).
+
+wrap(List) -> lists:flatten(lists:append(["<?xml version=\"1.0\"?><Response>",
+                                          List, "</Response>"])).
