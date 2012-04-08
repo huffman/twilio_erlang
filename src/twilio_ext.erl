@@ -62,7 +62,7 @@ get_twiml2(2) -> [#say{text = "bonza, dogface",
                        voice = "woman"},
                   #say{text = "now piss aff!"}];
 get_twiml2(3) -> [#say{text = "sorting out this"},
-                  #sms{text = "ping this pony boy",
+                  #sms{text = "sending Gordon an SMS message",
                        to = "+447776251669",
                        from = "+441315101897"}];
 get_twiml2(4) -> [#say{text = "hot diggity",
@@ -73,7 +73,8 @@ get_twiml2(4) -> [#say{text = "hot diggity",
                        voice= "woman"}];
 get_twiml2(5) -> [#play{url = "http://files.hypernumbers.com/music/"
                         ++ "RockyMountainMedleyPart1.mp3"}];
-get_twiml2(6) -> [#dial{body = [#number{number = "+447776301539"}]}];
+get_twiml2(6) -> [#say{text = "forwarding to Gordon"},
+                  #dial{body = [#number{number = "+447776251669"}]}];
 get_twiml2(7) -> [#say{text="welcome to a simple conference call. "
                        ++ "Have someone else call this number"},
                   #dial{body = [#conference{muted = false, beep = true,
