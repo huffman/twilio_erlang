@@ -17,6 +17,7 @@
          debug/0,
          debug2/0,
          hangup/1,
+         recording/0,
          log_terms/2
         ]).
 
@@ -31,14 +32,20 @@ handle(Params) ->
             io:format("phone ringing...~n"),
             {A, B, C} = now(),
             random:seed(A, B, C),
-            _N = random:uniform(8),
+            _N = random:uniform(7),
             TwiML_EXT = twilio_ext:get_twiml_ext(8),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
-            io:format("call completed...~n"),
-            twilio:pretty_print(Records),
-            ok = inbound_phone_sup:call_complete(Records),
-            ok
+            case Records#twilio.recording of
+                null ->
+                    io:format("call completed...~n"),
+                    ok = inbound_phone_sup:call_complete(Records),
+                    ok;
+                _ ->
+                    io:format("notification of recording...~n"),
+                    ok = inbound_phone_sup:recording_notification(Records),
+                    ok
+            end
     end.
 
 get_twiml_ext(N) ->
@@ -55,8 +62,8 @@ get_twiml2(2) -> [#say{text = "bonza, dogface",
                   #say{text = "now piss aff!"}];
 get_twiml2(3) -> [#say{text = "sorting out this"},
                   #sms{text = "ping this pony boy",
-                          to = "+447776251669",
-                          from = "+441315101897"}];
+                       to = "+447776251669",
+                       from = "+441315101897"}];
 get_twiml2(4) -> [#say{text = "hot diggity",
                        language = "de",
                        voice = "woman"},
@@ -176,3 +183,66 @@ hangup(CallSID) ->
               {"Caller","+447776251669"},
               {"CalledCity",[]}],
     handle(Params).
+
+recording() ->
+    {A, B, C} = now(),
+    CallSID = integer_to_list(A) ++ integer_to_list(B) ++ integer_to_list(C),
+    io:format("Spoofing a call with CallSID of ~p~n", [CallSID]),
+    Params1 = [{"AccountSid","AC7a076e30da6d49119b335d3a6de43844"},
+              {"ToZip",[]},
+              {"FromState",[]},
+              {"Called","+441315101897"},
+              {"FromCountry","GB"},
+              {"CallerCountry","GB"},
+              {"CalledZip",[]},
+              {"Direction","inbound"},
+              {"FromCity",[]},
+              {"CalledCountry","GB"},
+              {"CallerState",[]},
+              {"CallSid", CallSID},
+              {"CalledState","Edinburgh"},
+              {"From","+447776251669"},
+              {"CallerZip",[]},
+              {"FromZip",[]},
+              {"CallStatus","ringing"},
+              {"ToCity",[]},
+              {"ToState","Edinburgh"},
+              {"To","+441315101897"},
+              {"ToCountry","GB"},
+              {"CallerCity",[]},
+              {"ApiVersion","2010-04-01"},
+              {"Caller","+447776251669"},
+              {"CalledCity",[]}],
+    handle(Params1),
+
+    Params2 = [{"AccountSid","AC7a076e30da6d49119b335d3a6de43844"},
+              {"ToZip",[]},
+              {"FromState",[]},
+              {"Called","+441315101897"},
+              {"FromCountry","GB"},
+              {"CallerCountry","GB"},
+              {"CalledZip",[]},
+              {"Direction","inbound"},
+              {"FromCity",[]},
+              {"CalledCountry","GB"},
+              {"CallerState",[]},
+              {"CallSid", CallSID},
+              {"CalledState","Edinburgh"},
+              {"From","+447776251669"},
+              {"CallerZip",[]},
+              {"FromZip",[]},
+              {"CallStatus","completed"},
+              {"ToCity",[]},
+              {"ToState","Edinburgh"},
+              {"RecordingUrl",
+               "http://api.twilio.com/2010-04-01/Accounts/AC7a076e30da6d49119b335d3a6de43844/Recordings/REf11666b40c423726fcf26f15635373b6"},
+              {"To","+441315101897"},
+              {"Digits","hangup"},
+              {"ToCountry","GB"},
+              {"RecordingDuration","3"},
+              {"CallerCity",[]},
+              {"ApiVersion","2010-04-01"},
+              {"Caller","+447776251669"},
+              {"CalledCity",[]},
+              {"RecordingSid","REf11666b40c423726fcf26f15635373b6"}],
+    handle(Params2).
