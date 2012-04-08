@@ -58,8 +58,8 @@ to_xmerl_element(#gather{} = Gather) ->
     Attrs = [{action,      Gather#gather.action},
              {method,      Gather#gather.method},
              {timeout,     Gather#gather.timeout},
-             {finishOnKey, Gather#gather.finish_on_key},
-             {numDigits,   Gather#gather.num_digits}],
+             {finishOnKey, Gather#gather.finishOnKey},
+             {numDigits,   Gather#gather.numDigits}],
     CleanAttrs = remove_undefined(Attrs),
     Body = [to_xmerl_element(Element) || Element <- Gather#gather.body],
     {'Gather', CleanAttrs, Body};
@@ -67,11 +67,11 @@ to_xmerl_element(#record{} = Record) ->
     Attrs = [{action,             Record#record.action},
              {method,             Record#record.method},
              {timeout,            Record#record.timeout},
-             {finishOnKey,        Record#record.finish_on_key},
-             {maxLength,          Record#record.max_length},
+             {finishOnKey,        Record#record.finishOnKey},
+             {maxLength,          Record#record.maxLength},
              {transcribe,         Record#record.transcribe},
-             {transcribeCallback, Record#record.transcribe_callback},
-             {playBeep,           Record#record.play_beep}],
+             {transcribeCallback, Record#record.transcribeCallback},
+             {playBeep,           Record#record.playBeep}],
     CleanAttrs = remove_undefined(Attrs),
     {'Record', CleanAttrs, []};
 to_xmerl_element(#sms{} = Sms) ->
@@ -79,16 +79,16 @@ to_xmerl_element(#sms{} = Sms) ->
              {from,           Sms#sms.from},
              {action,         Sms#sms.action},
              {method,         Sms#sms.method},
-             {statusCallback, Sms#sms.status_callback}],
+             {statusCallback, Sms#sms.statusCallback}],
     CleanAttrs = remove_undefined(Attrs),
     {'Sms', CleanAttrs, [Sms#sms.text]};
 to_xmerl_element(#dial{} = Dial) ->
     Attrs = [{action,       Dial#dial.action},
              {method,       Dial#dial.method},
              {timeout,      Dial#dial.timeout},
-             {hangupOnStar, Dial#dial.hangup_on_star},
-             {timeLimit,    Dial#dial.time_limit},
-             {callerId,     Dial#dial.caller_id},
+             {hangupOnStar, Dial#dial.hangupOnStar},
+             {timeLimit,    Dial#dial.timeLimit},
+             {callerId,     Dial#dial.callerId},
              {record,       Dial#dial.record}],
     CleanAttrs = remove_undefined(Attrs),
 
@@ -109,7 +109,7 @@ to_xmerl_element(#dial{} = Dial) ->
            end,
     {'Dial', CleanAttrs, Body};
 to_xmerl_element(#number{} = Number) ->
-    Attrs = [{sendDigits, Number#number.send_digits},
+    Attrs = [{sendDigits, Number#number.sendDigits},
              {url, Number#number.url}],
     CleanAttrs = remove_undefined(Attrs),
     {'Number', CleanAttrs, [Number#number.number]};
@@ -351,14 +351,14 @@ print_2(#play{url = U}, Rank, Indent, Prefix, Postfix) ->
     io_lib:format("~s~s~s - PLAY ~s ~s",
                   [Prefix, pad(Indent), Rank, U, Postfix]);
 print_2(#gather{} = G, Rank, Indent, Prefix, Postfix) ->
-    Key = case G#gather.finish_on_key of
+    Key = case G#gather.finishOnKey of
               undefined -> "";
               K         -> "(finish with: " ++ K ++ ")"
           end,
     io_lib:format("~s~s~s - GATHER (request Keypad Input) ~s~s",
                   [Prefix, pad(Indent), Rank, Key, Postfix]);
 print_2(#record{} = R, Rank, Indent, Prefix, Postfix) ->
-    Beep = case R#record.play_beep of
+    Beep = case R#record.playBeep of
                undefined -> "";
                false     -> "";
                true      -> "(beep)"
@@ -460,34 +460,34 @@ check(#play{} = Play, Acc) ->
     check_int(Play#play.loop, ?PLAYLoopMin, "loop", "#play{}", Acc);
 check(#gather{} = G, Acc) ->
     NAcc = is_member("#gather{}",
-                     [{gather, G#gather.method,        ?GATHERMethod},
-                      {gather, G#gather.finish_on_key, ?GATHERFOnKey}],
+                     [{gather, G#gather.method,      ?GATHERMethod},
+                      {gather, G#gather.finishOnKey, ?GATHERFOnKey}],
                      Acc),
     NAcc2 = check_int(G#gather.timeout, ?GATHERTimeoutMin, "timeout",
                       "#gather{}", NAcc),
-    NAcc3 = check_int(G#gather.num_digits, ?GATHERTimeoutMin, "num_digits",
+    NAcc3 = check_int(G#gather.numDigits, ?GATHERTimeoutMin, "num_digits",
                       "#gather{}", NAcc2),
     NAcc4 = lists:foldl(fun check_gather/2, NAcc3, G#gather.body),
     NAcc5 = check_bool(G#gather.autoMenu_EXT, "autoMenu_EXT", "#gather{}", NAcc4),
-    check_after_EXT(G#gather.after_EXT, G#gather.num_digits, NAcc5);
+    check_after_EXT(G#gather.after_EXT, G#gather.numDigits, NAcc5);
 check(#record{} = R, Acc) ->
     NAcc = is_member("#record{}",
-                     [{record, R#record.method,        ?RECORDMethod},
-                      {record, R#record.finish_on_key, ?RECORDFOnKey}],
+                     [{record, R#record.method,      ?RECORDMethod},
+                      {record, R#record.finishOnKey, ?RECORDFOnKey}],
                      Acc),
     NAcc2 = check_bool(R#record.transcribe, "transcribe", "#record{}", NAcc),
-    NAcc3 = check_bool(R#record.play_beep,  "play_beeb",  "#record{}", NAcc2),
+    NAcc3 = check_bool(R#record.playBeep,   "playBeeb",   "#record{}", NAcc2),
     NAcc4 = check_int(R#record.timeout, ?RECORDTimeoutMin, "timeout",
                       "#record{}", NAcc3),
-    check_int(R#record.max_length, ?RECORDMaxLen, "max_length",
+    check_int(R#record.maxLength, ?RECORDMaxLen, "maxLength",
               "#record{}", NAcc4);
 check(#dial{} = D, Acc) ->
     NAcc = is_member("#dial{}", [{method, D#dial.method, ?DIALMethod}], Acc),
     NAcc2 = check_int(D#dial.timeout, ?DIALTimeoutMin, "timeout",
                       "#dial{}", NAcc),
-    NAcc3 = check_int(D#dial.time_limit, ?DIALTimeLimitMin, "time_limit",
+    NAcc3 = check_int(D#dial.timeLimit, ?DIALTimeLimitMin, "timeLimit",
                       "#dial{}", NAcc2),
-    NAcc4 = check_bool(D#dial.hangup_on_star, "hangup_on_star",
+    NAcc4 = check_bool(D#dial.hangupOnStar, "hangupOnStar",
                        "#dial{}", NAcc3),
     NAcc5 = check_bool(D#dial.record, "#record{}",
                        "#dial{}", NAcc4),
@@ -582,7 +582,7 @@ check(Rec, Acc) when is_record(Rec, number)
 % even though they yanks at twilio accept 'Merican formatted
 % numbers as well
 check_noun(#number{} = N, Acc) ->
-    NAcc = check_send_digits(N#number.send_digits, Acc),
+    NAcc = check_send_digits(N#number.sendDigits, Acc),
     check_phone_no(N#number.number, "number", "#number{}", NAcc);
 % client is a noun with no attributes
 check_noun(#client{} = C, Acc) ->
@@ -831,7 +831,7 @@ encode_test_() ->
                  ?XML("<Gather action=\"eval_gather\" timeout=\"60\" "
                       ++ "numDigits=\"10\"/>"),
                  lists:flatten(encode([#gather{action="eval_gather",
-                                               num_digits=10, timeout=60}]))),
+                                               numDigits=10, timeout=60}]))),
               ?assertEqual(
                  ?XML("<Gather action=\"eval_gather\"><Say>Hello</Say>"
                       ++ "</Gather>"),
@@ -883,7 +883,7 @@ encode_test_() ->
                  ?XML("<Dial action=\"/do_stuff\"><Number sendDigits=\"9528\">"
                       ++ "1234833</Number></Dial>"),
                  lists:flatten(encode([#dial{action="/do_stuff",
-                                             body=[#number{send_digits="9528",
+                                             body=[#number{sendDigits="9528",
                                                           number="1234833"}]}])))
       end},
      {"composite twiml",
@@ -944,8 +944,8 @@ validate_test_() ->
      ?_assertEqual(false, is_valid([#gather{}])),
      ?_assertEqual(false, is_valid([#gather{method = "pOsT"}])),
      ?_assertEqual(false, is_valid([#gather{timeout = 3}])),
-     ?_assertEqual(false, is_valid([#gather{finish_on_key = "*"}])),
-     ?_assertEqual(false, is_valid([#gather{num_digits = 333}])),
+     ?_assertEqual(false, is_valid([#gather{finishOnKey = "*"}])),
+     ?_assertEqual(false, is_valid([#gather{numDigits = 333}])),
      ?_assertEqual(false, is_valid([#gather{body = [#play{}, #say{},
                                                     #pause{}]}])),
 
@@ -955,26 +955,26 @@ validate_test_() ->
      ?_assertEqual(true, is_valid([#record{}])),
      ?_assertEqual(true, is_valid([#record{method = "Post"}])),
      ?_assertEqual(true, is_valid([#record{timeout = 2}])),
-     ?_assertEqual(true, is_valid([#record{max_length = 123}])),
-     ?_assertEqual(true, is_valid([#record{finish_on_key = "*"}])),
+     ?_assertEqual(true, is_valid([#record{maxLength = 123}])),
+     ?_assertEqual(true, is_valid([#record{finishOnKey = "*"}])),
      ?_assertEqual(true, is_valid([#record{transcribe = "tRue"}])),
-     ?_assertEqual(true, is_valid([#record{play_beep = "False"}])),
+     ?_assertEqual(true, is_valid([#record{playBeep = "False"}])),
      % RECORD failing
      ?_assertEqual(false, is_valid([#record{method = "Pongo"}])),
      ?_assertEqual(false, is_valid([#record{timeout = 0}])),
-     ?_assertEqual(false, is_valid([#record{max_length = 123.44}])),
-     ?_assertEqual(false, is_valid([#record{finish_on_key = "&"}])),
+     ?_assertEqual(false, is_valid([#record{maxLength = 123.44}])),
+     ?_assertEqual(false, is_valid([#record{finishOnKey = "&"}])),
      ?_assertEqual(false, is_valid([#record{transcribe = "tRuth"}])),
-     ?_assertEqual(false, is_valid([#record{play_beep = "Farts"}])),
+     ?_assertEqual(false, is_valid([#record{playBeep = "Farts"}])),
 
      % DIAL passing
      ?_assertEqual(true, is_valid([#dial{method = "GeT",
                                          body = [#number{number = "+123"}]}])),
      ?_assertEqual(true, is_valid([#dial{timeout = 3,
                                          body = [#number{number = "+123"}]}])),
-     ?_assertEqual(true, is_valid([#dial{hangup_on_star = "trUE",
+     ?_assertEqual(true, is_valid([#dial{hangupOnStar = "trUE",
                                          body = [#number{number = "+123"}]}])),
-     ?_assertEqual(true, is_valid([#dial{time_limit = 4,
+     ?_assertEqual(true, is_valid([#dial{timeLimit = 4,
                                          body = [#number{number = "+123"}]}])),
      ?_assertEqual(true, is_valid([#dial{record = "fAlse",
                                          body = [#number{number = "+123"}]}])),
@@ -982,8 +982,8 @@ validate_test_() ->
      ?_assertEqual(false, is_valid([#dial{}])),
      ?_assertEqual(false, is_valid([#dial{method = "GeT=rund"}])),
      ?_assertEqual(false, is_valid([#dial{timeout = "33"}])),
-     ?_assertEqual(false, is_valid([#dial{hangup_on_star = "banjo"}])),
-     ?_assertEqual(false, is_valid([#dial{time_limit = -4}])),
+     ?_assertEqual(false, is_valid([#dial{hangupOnStar = "banjo"}])),
+     ?_assertEqual(false, is_valid([#dial{timeLimit = -4}])),
      ?_assertEqual(false, is_valid([#dial{record = "fAlsies"}])),
 
      % SMS passiing
@@ -1019,13 +1019,13 @@ validate_test_() ->
      ?_assertEqual(false, is_valid([#reject{reason = "BuSTy"}])),
 
      % NUMBER passing
-     ?_assertEqual(true, is_valid([#dial{body = [#number{send_digits = "ww234",
+     ?_assertEqual(true, is_valid([#dial{body = [#number{sendDigits = "ww234",
                                                          number = "+123"}]}])),
      ?_assertEqual(true, is_valid([#dial{body = [#number{number = "+234"}]}])),
      % NUMBER failing
      ?_assertEqual(false, is_valid([#number{}])),
      ?_assertEqual(false, is_valid([#dial{body = [#number{}]}])),
-     ?_assertEqual(false, is_valid([#dial{body = [#number{send_digits = "dww234",
+     ?_assertEqual(false, is_valid([#dial{body = [#number{sendDigits = "dww234",
                                                           number = "+123"}]}])),
      ?_assertEqual(false, is_valid([#dial{body = [#number{number = "234"}]}])),
 
@@ -1115,7 +1115,7 @@ nesting_test_() ->
     REJECT   = #reject{},
 
     % nouns
-    NUMBER     = #number{send_digits = "ww234", number = "+123"},
+    NUMBER     = #number{sendDigits = "ww234", number = "+123"},
     CLIENT     = #client{client = "yeah"},
     CONFERENCE = #conference{ conference = "hoot"},
 
@@ -1158,9 +1158,9 @@ proper_gather_test_() ->
                                            after_EXT = [RESPONSE]}])),
      ?_assertEqual(true, is_valid([#gather{timeout = 3,
                                            after_EXT = [RESPONSE]}])),
-     ?_assertEqual(true, is_valid([#gather{finish_on_key = "*",
+     ?_assertEqual(true, is_valid([#gather{finishOnKey = "*",
                                            after_EXT = [RESPONSE]}])),
-     ?_assertEqual(true, is_valid([#gather{num_digits = 1,
+     ?_assertEqual(true, is_valid([#gather{numDigits = 1,
                                            after_EXT = [RESPONSE]}])),
      ?_assertEqual(true, is_valid([#gather{body = [#play{}, #say{},
                                                    #pause{}],
@@ -1170,9 +1170,9 @@ proper_gather_test_() ->
                                             after_EXT = [RESPONSE]}])),
      ?_assertEqual(false, is_valid([#gather{timeout = -3,
                                             after_EXT = [RESPONSE]}])),
-     ?_assertEqual(false, is_valid([#gather{finish_on_key = "^",
+     ?_assertEqual(false, is_valid([#gather{finishOnKey = "^",
                                             after_EXT = [RESPONSE]}])),
-     ?_assertEqual(false, is_valid([#gather{num_digits = 333.45,
+     ?_assertEqual(false, is_valid([#gather{numDigits = 333.45,
                                             after_EXT = [RESPONSE]}])),
      ?_assertEqual(false, is_valid([#gather{body = [#dial{}, #number{}],
                                             after_EXT = [RESPONSE]}])),
@@ -1193,19 +1193,19 @@ menu_consistency_check_test_() ->
 
     [
      % GATHER passing
-     ?_assertEqual(true, is_valid([#gather{num_digits = 1, method = "pOsT",
+     ?_assertEqual(true, is_valid([#gather{numDigits = 1, method = "pOsT",
                                            after_EXT = [RESPONSE1]}])),
-     ?_assertEqual(true, is_valid([#gather{num_digits = 2, method = "pOsT",
+     ?_assertEqual(true, is_valid([#gather{numDigits = 2, method = "pOsT",
                                            after_EXT = [RESPONSE11]}])),
-     ?_assertEqual(true, is_valid([#gather{num_digits = 2, method = "pOsT",
+     ?_assertEqual(true, is_valid([#gather{numDigits = 2, method = "pOsT",
                                            after_EXT = [DEFAULT]}])),
-     ?_assertEqual(true, is_valid([#gather{finish_on_key = "#", method = "pOsT",
+     ?_assertEqual(true, is_valid([#gather{finishOnKey = "#", method = "pOsT",
                                            after_EXT = [DEFAULT]}])),
 
      % GATHER failing
-     ?_assertEqual(false, is_valid([#gather{num_digits = 1, method = "pOsT",
+     ?_assertEqual(false, is_valid([#gather{numDigits = 1, method = "pOsT",
                                             after_EXT = [RESPONSE11]}])),
-     ?_assertEqual(false, is_valid([#gather{num_digits = 2, method = "pOsT",
+     ?_assertEqual(false, is_valid([#gather{numDigits = 2, method = "pOsT",
                                             after_EXT = [RESPONSE1]}]))
     ].
 
@@ -1225,16 +1225,16 @@ extended_dial_test_() ->
                                          body = [FUNCTION]}])),
      ?_assertEqual(true, is_valid([#dial{timeout = 3,
                                          body = [CHAINLOAD]}])),
-     ?_assertEqual(true, is_valid([#dial{hangup_on_star = "trUE",
+     ?_assertEqual(true, is_valid([#dial{hangupOnStar = "trUE",
                                          body = [FUNCTION, CHAINLOAD]}])),
      % DIAL failing tests
-     ?_assertEqual(false, is_valid([#dial{time_limit = 4,
+     ?_assertEqual(false, is_valid([#dial{timeLimit = 4,
                                           body = [RESPONSE]}])),
      ?_assertEqual(false, is_valid([#dial{record = "fAlse",
                                           body = [DEFAULT]}])),
      ?_assertEqual(false, is_valid([#dial{record = "fAlse",
                                           body = [GOTO]}])),
-     ?_assertEqual(false, is_valid([#dial{hangup_on_star = "trUE",
+     ?_assertEqual(false, is_valid([#dial{hangupOnStar = "trUE",
                                           body = [FUNCTION, CHAINLOAD,
                                                   RESPONSE, DEFAULT, GOTO]}]))
     ].
@@ -1254,7 +1254,7 @@ nested_gather_test() ->
     REJECT   = #reject{},
 
     % nouns
-    NUMBER     = #number{send_digits = "ww234", number = "+123"},
+    NUMBER     = #number{sendDigits = "ww234", number = "+123"},
     CLIENT     = #client{client = "yeah"},
     CONFERENCE = #conference{ conference = "hoot"},
 
@@ -1398,7 +1398,7 @@ full_extension_test_() ->
     REJECT   = #reject{},
 
     % nouns
-    NUMBER     = #number{send_digits = "ww234", number = "+123"},
+    NUMBER     = #number{sendDigits = "ww234", number = "+123"},
     CLIENT     = #client{client = "yeah"},
     CONFERENCE = #conference{ conference = "hoot"},
 
@@ -1446,7 +1446,7 @@ testing() ->
     SAY        = #say{text = "burb"},
     PLAY       = #play{url = "some file"},
     FUNCTION   = #function_EXT{title = "dandy", module = "bish", fn = "bash"},
-    _RECORD     = #record{play_beep = true, transcribe = true},
+    _RECORD     = #record{playBeep = true, transcribe = true},
     NUMBER1    = #number{number = "+998877"},
     NUMBER2    = #number{number = "+445566"},
     NUMBER3    = #number{number = "+220044"},
@@ -1466,7 +1466,7 @@ testing() ->
                                body = [SAY, PLAY]},
     RESPONSE2  = #response_EXT{title = "jerk", response = "2",
                                body = [PAUSE, SAY, PLAY]},
-    GATHER     = #gather{finish_on_key = "#", body = [SAY, PLAY],
+    GATHER     = #gather{finishOnKey = "#", body = [SAY, PLAY],
                          after_EXT = [RESPONSE1, RESPONSE2]},
     RESPONSE3  = #response_EXT{title = "snerk", response = "3",
                                body = [PAUSE, SAY, PLAY,
