@@ -19,7 +19,8 @@
 -export([
          testing/0,
          testing2/0,
-         testing3/0
+         testing3/0,
+         testing4/0
         ]).
 
 -include("twilio.hrl").
@@ -695,15 +696,12 @@ check_int_as_str(Str, Fld, Rec, Acc) ->
 
 check_bool(undefined, _Fld, _Rec, Acc) ->
     Acc;
+check_bool(true, _Fld, _Rec, Acc) ->
+    Acc;
+check_bool(false, _Fld, _Rec, Acc) ->
+    Acc;
 check_bool(Val, Fld, Rec, Acc) ->
-    case string:to_lower(Val) of
-        "true" ->
-            Acc;
-        "false" ->
-            Acc;
-        _Other ->
-            [io_lib:format("Invalid ~p in ~p ~p~sn", [Fld, Rec, Val, "~"]) | Acc]
-    end.
+    [io_lib:format("Invalid ~p in ~p ~p~sn", [Fld, Rec, Val, "~"]) | Acc].
 
 check_int(undefined, _Min, _Fld, _Rec, Acc) ->
     Acc;
@@ -1455,11 +1453,28 @@ testing2() ->
 
 testing3() ->
     DIAL = #dial{body=[#number{number="+4455222"}]},
-    case is_valid([DIAL]) of
+    TwiML = [DIAL],
+    case is_valid(TwiML) of
         false ->
-            io:format("~p is not valid~n", [DIAL]);
+            io:format("~p is not valid~n", [TwiML]);
         true  ->
-            io:format("Does ~p validate? ~p~n",
-                      [DIAL, validate([DIAL])]),
-            compile([DIAL])
+            compile(TwiML)
+    end.
+
+testing4() ->
+    SAY      = #say{text = "burb"},
+    PLAY     = #play{url = "some file"},
+    REPEAT   = #repeat_EXT{},
+    RESPONSE = #response_EXT{title = "berk", response = "1",
+                               body = [SAY, PLAY]},
+    GATHER   = #gather{autoMenu_EXT = true, body = [SAY, PLAY],
+                         after_EXT = [RESPONSE, REPEAT]},
+
+    TwiML = [GATHER],
+    validate(TwiML),
+    case is_valid(TwiML) of
+        false ->
+            io:format("~p is not valid~n", [TwiML]);
+        true  ->
+            compile(TwiML)
     end.
