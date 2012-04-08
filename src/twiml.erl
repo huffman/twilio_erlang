@@ -25,17 +25,18 @@
          testing2/0,
          testing3/0,
          testing4/0,
-         testing5/0
+         testing5/0,
+         testing6/0
         ]).
 
 -include("twilio.hrl").
 
--define(DOLLAR, "$"). %" for the code colouring
+-define(DOLLAR, "$"). %". for the code colouring
 
 %% @doc Encodes a set of twiml records as an XML document.
-        encode(Elements) ->
-               Content = [{'Response', [], [to_xmerl_element(El) || El <- Elements]}],
-               xmerl:export_simple(Content, xmerl_xml).
+encode(Elements) ->
+    Content = [{'Response', [], [to_xmerl_element(El) || El <- Elements]}],
+    xmerl:export_simple(Content, xmerl_xml).
 
 encode_record(Record) ->
     El = xmerl:export_simple([to_xmerl_element(Record)], xmerl_xml),
@@ -91,12 +92,21 @@ to_xmerl_element(#dial{} = Dial) ->
              {record,       Dial#dial.record}],
     CleanAttrs = remove_undefined(Attrs),
 
-    case is_list(Dial#dial.body) of
-        true ->
-            Body = [Dial#dial.body];
-        false ->
-            Body = [to_xmerl_element(Dial#dial.body)]
-    end,
+    Body = case Dial#dial.body of
+               [] ->
+                   [];
+               _ ->
+                   case is_list(Dial#dial.body) of
+                       true ->
+                           case is_tuple(hd(Dial#dial.body)) of
+                               true -> [to_xmerl_element(X)
+                                        || X <- Dial#dial.body];
+                               false -> [Dial#dial.body]
+                           end;
+                       false ->
+                           [to_xmerl_element(Dial#dial.body)]
+                   end
+           end,
     {'Dial', CleanAttrs, Body};
 to_xmerl_element(#number{} = Number) ->
     Attrs = [{sendDigits, Number#number.send_digits},
@@ -214,7 +224,7 @@ comp3([#dial{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
     NewRank = incr(Rank2),
     % we don't want dial to terminate with a hangup
     {_, NewRank2, NewBody} = comp3(D#dial.body, nohangup, state, Fun,
-                                    NewRank, []),
+                                   NewRank, []),
     NewRank3 = bump(NewRank2),
     CloseDial = Fun("Dial", NewRank3),
     NewRec = Fun(D, Rank2),
@@ -712,7 +722,12 @@ check_bool(true, _Fld, _Rec, Acc) ->
 check_bool(false, _Fld, _Rec, Acc) ->
     Acc;
 check_bool(Val, Fld, Rec, Acc) ->
-    [io_lib:format("Invalid ~p in ~p ~p~sn", [Fld, Rec, Val, "~"]) | Acc].
+    case string:to_lower(Val) of
+        "true"  -> Acc;
+        "false" -> Acc;
+        _       -> [io_lib:format("Invalid ~p in ~p ~p~sn",
+                                  [Fld, Rec, Val, "~"]) | Acc]
+    end.
 
 check_int(undefined, _Min, _Fld, _Rec, Acc) ->
     Acc;
@@ -784,7 +799,8 @@ encode_test_() ->
                  lists:flatten(encode([#say{text="Hello!"}]))),
               ?assertEqual(
                  ?XML("<Say language=\"en\" loop=\"2\">Hello!</Say>"),
-                 lists:flatten(encode([#say{text="Hello!", loop=2, language="en"}])))
+                 lists:flatten(encode([#say{text="Hello!", loop=2,
+                                            language="en"}])))
       end},
      {"play twiml",
       fun() ->
@@ -796,10 +812,12 @@ encode_test_() ->
                  lists:flatten(encode([#play{loop=2}]))),
               ?assertEqual(
                  ?XML("<Play loop=\"2\">https://someurlhere.com/blah</Play>"),
-                 lists:flatten(encode([#play{url="https://someurlhere.com/blah", loop=2}]))),
+                 lists:flatten(encode([#play{url="https://someurlhere.com/blah",
+                                             loop=2}]))),
               ?assertEqual(
                  ?XML("<Play loop=\"2\">https://someurlhere.com/blah</Play>"),
-                 lists:flatten(encode([#play{url="https://someurlhere.com/blah", loop=2}])))
+                 lists:flatten(encode([#play{url="https://someurlhere.com/blah",
+                                             loop=2}])))
       end},
      {"gather twiml",
       fun() ->
@@ -810,11 +828,15 @@ encode_test_() ->
                  ?XML("<Gather action=\"eval_gather\"/>"),
                  lists:flatten(encode([#gather{action="eval_gather"}]))),
               ?assertEqual(
-                 ?XML("<Gather action=\"eval_gather\" timeout=\"60\" numDigits=\"10\"/>"),
-                 lists:flatten(encode([#gather{action="eval_gather", num_digits=10, timeout=60}]))),
+                 ?XML("<Gather action=\"eval_gather\" timeout=\"60\" "
+                      ++ "numDigits=\"10\"/>"),
+                 lists:flatten(encode([#gather{action="eval_gather",
+                                               num_digits=10, timeout=60}]))),
               ?assertEqual(
-                 ?XML("<Gather action=\"eval_gather\"><Say>Hello</Say></Gather>"),
-                 lists:flatten(encode([#gather{action="eval_gather", body=[#say{text="Hello"}]}])))
+                 ?XML("<Gather action=\"eval_gather\"><Say>Hello</Say>"
+                      ++ "</Gather>"),
+                 lists:flatten(encode([#gather{action="eval_gather",
+                                               body=[#say{text="Hello"}]}])))
       end},
      {"record twiml",
       fun() ->
@@ -825,8 +847,10 @@ encode_test_() ->
                  ?XML("<Record action=\"eval_reCOrd\"/>"),
                  lists:flatten(encode([#record{action="eval_reCOrd"}]))),
               ?assertEqual(
-                 ?XML("<Record action=\"eval_record\" method=\"GET\" timeout=\"10\"/>"),
-                 lists:flatten(encode([#record{action="eval_record", timeout=10, method='GET'}])))
+                 ?XML("<Record action=\"eval_record\" method=\"GET\" "
+                      ++ "timeout=\"10\"/>"),
+                 lists:flatten(encode([#record{action="eval_record",
+                                               timeout=10, method='GET'}])))
       end},
      {"sms twiml",
       fun() ->
@@ -838,29 +862,38 @@ encode_test_() ->
                  lists:flatten(encode([#sms{text="Hello!"}]))),
               ?assertEqual(
                  ?XML("<Sms action=\"default/sms\">Hello!</Sms>"),
-                 lists:flatten(encode([#sms{text="Hello!", action="default/sms"}])))
+                 lists:flatten(encode([#sms{text="Hello!",
+                                            action="default/sms"}])))
       end},
      {"dial twiml",
       fun() ->
               ?assertEqual(
-                 ?XML("<Dial></Dial>"),
+                 ?XML("<Dial/>"),
                  lists:flatten(encode([#dial{}]))),
               ?assertEqual(
                  ?XML("<Dial action=\"/do_stuff\">1234833</Dial>"),
-                 lists:flatten(encode([#dial{action="/do_stuff", body="1234833"}]))),
-              ?assertEqual(
-                 ?XML("<Dial action=\"/do_stuff\"><Number>1234833</Number></Dial>"),
-                 lists:flatten(encode([#dial{action="/do_stuff", body=#number{number="1234833"}}]))),
-              ?assertEqual(
-                 ?XML("<Dial action=\"/do_stuff\"><Number sendDigits=\"9528\">1234833</Number></Dial>"),
                  lists:flatten(encode([#dial{action="/do_stuff",
-                                             body=#number{send_digits="9528", number="1234833"}}])))
+                                             body="1234833"}]))),
+              ?assertEqual(
+                 ?XML("<Dial action=\"/do_stuff\"><Number>1234833</Number>"
+                      ++ "</Dial>"),
+                 lists:flatten(encode([#dial{action="/do_stuff",
+                                             body=[#number{number="1234833"}]}]))),
+              ?assertEqual(
+                 ?XML("<Dial action=\"/do_stuff\"><Number sendDigits=\"9528\">"
+                      ++ "1234833</Number></Dial>"),
+                 lists:flatten(encode([#dial{action="/do_stuff",
+                                             body=[#number{send_digits="9528",
+                                                          number="1234833"}]}])))
       end},
      {"composite twiml",
       fun() ->
               ?assertEqual(
-                 ?XML("<Say>Hello! This is a voice message</Say><Say>This is another message</Say><Dial>48321523</Dial>"),
-                 lists:flatten(encode([#say{text="Hello! This is a voice message"},
+                 ?XML("<Say>Hello! This is a voice message</Say>"
+                      ++ "<Say>This is another message</Say>"
+                      ++ "<Dial>48321523</Dial>"),
+                 lists:flatten(encode([#say{text="Hello! This is a voice "
+                                            ++ "message"},
                                        #say{text="This is another message"},
                                        #dial{body="48321523"}])))
       end},
@@ -915,6 +948,7 @@ validate_test_() ->
      ?_assertEqual(false, is_valid([#gather{num_digits = 333}])),
      ?_assertEqual(false, is_valid([#gather{body = [#play{}, #say{},
                                                     #pause{}]}])),
+
      ?_assertEqual("can you have finish_on_key and num_digits?",
                    "dinnae ken"),
      % RECORD passing
@@ -1474,7 +1508,9 @@ testing3() ->
         true  ->
             Ret = compile(TwiML, "0", ascii),
             io:format(Ret),
-            compile(TwiML)
+            Ret2 = compile(TwiML),
+            io:format("FSM is ~p~n", [Ret2]),
+            encode(TwiML)
     end.
 
 testing4() ->
@@ -1501,3 +1537,5 @@ testing5() ->
     Ret = compile([SAY, PLAY], "0", ascii),
     io:format(Ret),
     compile([SAY, PLAY]).
+
+testing6() -> encode([#dial{action="/do_stuff", body="1234833"}]).
