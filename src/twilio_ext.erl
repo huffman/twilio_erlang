@@ -25,8 +25,7 @@ handle(Params, Path) ->
     case Records#twilio.call_status of
         "ringing" ->
             io:format("phone ringing...~n"),
-            TwiML_EXT = twiml_EXT_recipies:recipe(9),
-            io:format("Twiml_EXT is ~p~n", [TwiML_EXT]),
+            TwiML_EXT = twiml_EXT_recipies:random(),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
             case Records#twilio.recording of

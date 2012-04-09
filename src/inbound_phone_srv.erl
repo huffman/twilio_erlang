@@ -180,15 +180,17 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 execute(State, Action) ->
     #state{history = Hist} = State,
-    {NewS, Msg} = exec2(next, State, Action, []),
+    {NewCS, NewState, Msg} = exec2(next, State, Action, []),
     Reply = "<?xml version=\"1.0\"?><Response>"
         ++ lists:flatten(Msg) ++ "</Response>",
-    {Reply, State#state{currentstate = NewS, history = [Action | Hist]}}.
+    NewState2 = NewState#state{currentstate = NewCS,
+                               history = [Action | Hist]},
+    {Reply, NewState2}.
 
 exec2(wait, State, _Action, Acc) ->
     #state{currentstate = CS} = State,
     Msg = lists:flatten(lists:reverse(Acc)),
-    {CS, Msg};
+    {CS, State, Msg};
 exec2(next, State, Action, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
     case orddict:find(CS, FSM) of
@@ -197,17 +199,17 @@ exec2(next, State, Action, Acc) ->
         % these are the terminal clauses
         {ok, {{xml, X}, exit}} ->
             Reply = lists:reverse([X | Acc]),
-            {CS, Reply};
+            {CS, State, Reply};
         {ok, {{xml, X}, gather}} ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
                              fun twiml:unbump_on/1),
             NewS = State#state{currentstate = NewCS},
             {_, Default} = get_next_default(NewS, Action, []),
             Reply = lists:reverse([Default, X | Acc]),
-            {CS, Reply};
+            {CS, State, Reply};
         {ok, {{xml, X}, wait}} ->
             Reply = lists:reverse([X | Acc]),
-            {CS, Reply};
+            {CS, State, Reply};
         {ok, {{xml, X}, next}} ->
             Next = get_next(CS, FSM, fun twiml:bump/1, fun twiml:unbump_on/1),
             NewS = State#state{currentstate = Next},
@@ -225,7 +227,7 @@ exec2(next, State, Action, Acc) ->
             % just execute the new FSM
             exec2(next, NewState, Action, []);
          {ok, {#goto_EXT{}, Goto}} ->
-            {Goto, "<Redirect>./" ++ Goto ++ "</Redirect>"}
+            {Goto, State, "<Redirect>./" ++ Goto ++ "</Redirect>"}
     end.
 
 get_next(CS, FSM, Fun1, Fun2) ->
