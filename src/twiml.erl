@@ -310,7 +310,7 @@ make_fsm(Rec, Rank) when is_record(Rec, say)
                          orelse is_record(Rec, conference) ->
     {Rank, encode_record(Rec), next};
 make_fsm(Rec, Rank) when is_record(Rec, function_EXT) ->
-    {Rank, Rec, repeat};
+    {Rank, Rec, next};
 make_fsm(Rec, Rank) when is_record(Rec, gather) ->
     {Rank, fix_up(encode_record(Rec#gather{body = []})), into};
 make_fsm(Rec, Rank) when is_record(Rec, dial) ->

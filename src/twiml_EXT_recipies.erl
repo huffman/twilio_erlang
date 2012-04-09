@@ -14,7 +14,8 @@
 
 -export([
          recipe/1,
-         random/0
+         random/0,
+         function/1
         ]).
 
 random() ->
@@ -25,7 +26,7 @@ random() ->
 
 recipe(N) ->
     TwiML = recipy2(N),
-    io:format("TwiML is ~p~n", [TwiML]),
+    io:format("Reciple ~p returns ~p~n", [N, TwiML]),
     case twiml:is_valid(TwiML) of
         false -> exit("invalid TwiML");
         true -> TwiML
@@ -119,8 +120,11 @@ recipy2(11) ->
     [#gather{numDigits = 1, autoMenu_EXT = true, after_EXT = [RESPONSE1,
                                                               RESPONSE2]}];
 
-%
+% call out to a function
 recipy2(12) ->
-    ok.
+    [#function_EXT{title = "call out to function", module = 'twiml_EXT_recipies',
+                   fn = "function"}].
 
-
+function(State) ->
+    io:format("State is ~p~n", [State]),
+    random().

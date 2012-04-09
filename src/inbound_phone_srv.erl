@@ -217,7 +217,11 @@ exec2(next, State, Action, Acc) ->
             InProg = Action#twilio.inprogress,
             #twilio_inprogress{digits = D} = InProg,
             match(State, Action, D, Acc);
-        {_CS, #goto_EXT{}, _Goto}  -> exit("fix me...")
+        {CS, #function_EXT{module = M, fn = F}, next} ->
+            Return = apply_function(M, F, State),
+            io:format("Returning from function with ~p~n", [Return]);
+        {_CS, #goto_EXT{}, Goto}  ->
+            {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"}
     end.
 
 get_next(CS, FSM, Fun1, Fun2) ->
@@ -237,7 +241,7 @@ get_next(CS, FSM, Fun1, Fun2) ->
 incr(CS) -> twiml:bump(twiml:incr(CS)).
 
 respond(State, Rec) ->
-    #state{currentstate = CS, fsm = FSM, history = _Hist} = State,
+    #state{currentstate = CS, fsm = FSM} = State,
     case lists:keyfind(CS, 1, FSM) of
         false         -> exit("invalid state in respond");
         {CS, _, wait} -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
@@ -284,3 +288,23 @@ get_next_default(State, Action, Acc) ->
             get_next_default(NewS, Action, Acc)
     end.
 
+apply_function(Module, Function, State) ->
+    #state{currentstate = CS, fsm = FSM, history = History} = State,
+    NewHist = [{"calling " ++ to_list(Module) ++ ":" ++ to_list(Function)
+                ++ "/3"} | History],
+    NewTwiML = apply(to_atom(Module), to_atom(Function), [State]),
+    io:format("NewTwiml is ~p for ~p~n", [NewTwiML, CS]),
+    NewCState = twiml:compile(NewTwiML, CS, fsm),
+    io:format("State is ~p~nNewCState is ~p~n",
+              [State, NewCState]),
+    NewFSM = lists:keyreplace(CS, 1, FSM, NewCState),
+    io:format("NewFSM is ~p~n", [NewFSM]),
+    NewState = State#state{fsm = NewFSM, history = NewHist},
+    io:format("NewState is ~p~n", [NewState]),
+    NewState.
+
+to_atom(X) when is_atom(X) -> X;
+to_atom(X) when is_list(X) -> list_to_existing_atom(X).
+
+to_list(X) when is_list(X) -> X;
+to_list(X) when is_atom(X) -> atom_to_list(X).
