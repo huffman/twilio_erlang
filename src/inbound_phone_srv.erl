@@ -71,9 +71,9 @@ init([Params, TwiML_EXT]) ->
                    false ->
                        Tw = [#say{text = "sorry, this call has been setup "
                                   ++ "incorrectly"}],
-                      twiml:compile(Tw);
+                      orddict:from_list(twiml:compile(Tw));
                    true ->
-                       twiml:compile(TwiML_EXT)
+                       orddict:from_list(twiml:compile(TwiML_EXT))
                end,
     io:format("FSM is init is ~p~n", [FSM]),
     {ok, #state{twiml_ext = TwiML_EXT, initial_params = Params,
@@ -187,60 +187,60 @@ exec2(wait, State, _Action, Acc) ->
     {CS, Msg};
 exec2(next, State, Action, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    case lists:keyfind(CS, 1, FSM) of
-        false ->
+    case orddict:find_key(CS, FSM) of
+        error ->
             exit("invalid state in exec2");
         % these are the terminal clauses
-        {CS, {xml, X}, exit} ->
+        {ok,  {CS, {xml, X}, exit}} ->
             Reply = lists:reverse([X | Acc]),
             {CS, Reply};
-        {CS, {xml, X}, gather} ->
+        {ok, {CS, {xml, X}, gather}} ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                                      fun twiml:unbump_on/1),
+                             fun twiml:unbump_on/1),
             NewS = State#state{currentstate = NewCS},
             {_, Default} = get_next_default(NewS, Action, []),
             Reply = lists:reverse([Default, X | Acc]),
             {CS, Reply};
-        {CS, {xml, X}, wait} ->
+        {ok, {CS, {xml, X}, wait}} ->
             Reply = lists:reverse([X | Acc]),
             {CS, Reply};
-        {CS, {xml, X}, next} ->
+        {ok, {CS, {xml, X}, next}} ->
             Next = get_next(CS, FSM, fun twiml:bump/1, fun twiml:unbump_on/1),
             NewS = State#state{currentstate = Next},
             exec2(next, NewS, Action, [X | Acc]);
-        {CS, {xml, X}, into} ->
+        {ok, {CS, {xml, X}, into}} ->
             Into = get_next(CS, FSM, fun twiml:incr/1, fun twiml:bump/1),
             NewS = State#state{currentstate = Into},
             exec2(next, NewS, Action, [X | Acc]);
-        {CS, #response_EXT{}, into} ->
+        {ok,{CS, #response_EXT{}, into}} ->
             InProg = Action#twilio.inprogress,
             #twilio_inprogress{digits = D} = InProg,
             match(State, Action, D, Acc);
-        {CS, #function_EXT{module = M, fn = F}, next} ->
+        {ok, {CS, #function_EXT{module = M, fn = F}, next}} ->
             Return = apply_function(M, F, State),
             io:format("Returning from function with ~p~n", [Return]);
-        {_CS, #goto_EXT{}, Goto}  ->
+        {ok, {_CS, #goto_EXT{}, Goto}}  ->
             {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"}
     end.
 
 get_next(CS, FSM, Fun1, Fun2) ->
     Next = Fun1(CS),
-    case lists:keyfind(Next, 1, FSM) of
-        false ->
+    case orddict:fetch(Next, FSM) of
+        error ->
             Next2 = Fun2(CS),
-            case lists:keyfind(Next2, 1, FSM) of
-                false         -> exit("invalid state in get_next");
-                {State, _, _} -> State
+            case orddict:fetch(Next2, FSM) of
+                error               -> exit("invalid state in get_next");
+                {ok, {State, _, _}} -> State
             end;
-        {State2, _, _} -> State2
+        {ok, {State2, _, _}} -> State2
     end.
 
 respond(State, Rec) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    case lists:keyfind(CS, 1, FSM) of
-        false ->
+    case orddict:fetch(CS, FSM) of
+        error ->
             exit("invalid state in respond");
-        {CS, _, Type} when Type == wait orelse Type == gather ->
+        {ok, {CS, _, Type}} when Type == wait orelse Type == gather ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
                              fun twiml:unbump_on/1),
             NewS = State#state{currentstate = NewCS},
@@ -249,33 +249,33 @@ respond(State, Rec) ->
 
 match(State, Action, D, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    case lists:keyfind(CS, 1, FSM) of
-        false ->
+    case orddict:fetch(CS, FSM) of
+        error ->
             exit("invalid state in match");
-        {CS, #response_EXT{response = R} = _Resp, _} ->
+        {ok, {CS, #response_EXT{response = R} = _Resp, _}} ->
             case D of
                 R -> NewCS = get_next(CS, FSM, fun twiml:incr/1,
                                       fun twiml:bump/1),
                      NewS = State#state{currentstate = NewCS},
                      exec2(next, NewS, Action, []);
-               _  -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                                      fun twiml:unbump_on/1),
-                     NewS = State#state{currentstate = NewCS},
-                     match(NewS, Action, D, Acc)
+                _  -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
+                                       fun twiml:unbump_on/1),
+                      NewS = State#state{currentstate = NewCS},
+                      match(NewS, Action, D, Acc)
             end
     end.
 
 get_next_default(State, Action, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    case lists:keyfind(CS, 1, FSM) of
-        false ->
+    case orddict:fetch(CS, FSM) of
+        error ->
             exit("invalid state in get_next_default");
-        {CS, #default_EXT{}, _} ->
+        {ok, {CS, #default_EXT{}, _}} ->
             NewCS = get_next(CS, FSM, fun twiml:incr/1,
                              fun twiml:bump/1),
             NewS = State#state{currentstate = NewCS},
             exec2(next, NewS, Action, []);
-        {CS, #goto_EXT{}, Goto} ->
+        {ok, {CS, #goto_EXT{}, Goto}} ->
             {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"};
         _Other ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
@@ -293,11 +293,17 @@ apply_function(Module, Function, State) ->
     NewCState = twiml:compile(NewTwiML, CS, fsm),
     io:format("State is ~p~nNewCState is ~p~n",
               [State, NewCState]),
-    NewFSM = lists:keyreplace(CS, 1, FSM, NewCState),
-    io:format("NewFSM is ~p~n", [NewFSM]),
-    NewState = State#state{fsm = NewFSM, history = NewHist},
+    NewFSM1 = orddict:erase(CS, FSM, NewCState),
+    io:format("NewFSM1 is ~p~n", [NewFSM1]),
+    NewFSM2 = append(NewCState, NewFSM1),
+    io:format("NewFSM2 is ~p~n", [NewFSM2]),
+    NewState = State#state{fsm = NewFSM2, history = NewHist},
     io:format("NewState is ~p~n", [NewState]),
     NewState.
+
+append([], Orddict)           -> Orddict;
+append([{K, V} | T], Orddict) -> NewOrddict = orddict:append(K, V, Orddict),
+                                 append(T, NewOrddict).
 
 to_atom(X) when is_atom(X) -> X;
 to_atom(X) when is_list(X) -> list_to_existing_atom(X).
