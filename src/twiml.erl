@@ -7,12 +7,17 @@
 %%%-------------------------------------------------------------------
 -module(twiml).
 
+% api export
 -export([
          encode/1,
          validate/1,
          is_valid/1,
          compile/1,
-         compile/2,
+         compile/2
+         ]).
+
+% non-api exports
+-export([
          compile/3,
          bump/1,
          unbump/1,
@@ -147,16 +152,16 @@ remove_undefined(Attrs) ->
     [Attr || {_, Value} = Attr <- Attrs, Value =/= undefined].
 
 compile(Elements) when is_list(Elements) ->
-    compile(Elements, "1", fsm).
+    compile(Elements, fsm, "1").
 
 compile(Elements, Type) when is_list(Elements) ->
-    compile(Elements, "1", Type).
+    compile(Elements, Type, "1").
 
-compile(Elements, Rank, html) when is_list(Elements) ->
+compile(Elements, html, Rank) when is_list(Elements) ->
     comp2(Elements, Rank, fun print_html/2);
-compile(Elements, Rank, ascii) when is_list(Elements) ->
+compile(Elements, ascii, Rank) when is_list(Elements) ->
     comp2(Elements, Rank, fun print_ascii/2);
-compile(Elements, Rank, fsm) when is_list(Elements) ->
+compile(Elements, fsm, Rank) when is_list(Elements) ->
     comp2(Elements, Rank, fun make_fsm/2).
 
 comp2(Elements, Rank, Fun) ->
