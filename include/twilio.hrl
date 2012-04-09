@@ -110,12 +110,6 @@
           fn     :: string()
          }).
 
--record(chainload_EXT, {
-          title  :: string(),
-          module :: string(),
-          fn     :: string()
-         }).
-
 -record(goto_EXT, {
           goto :: string()
           }).
