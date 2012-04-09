@@ -149,7 +149,7 @@ compile(Elements) when is_list(Elements) ->
     compile(Elements, "0", fsm).
 
 compile(Elements, Type) when is_list(Elements) ->
-    compile(Elements, "0", Type).
+    compile(Elements, "1", Type).
 
 compile(Elements, Rank, html) when is_list(Elements) ->
     comp2(Elements, Rank, fun print_html/2);
@@ -171,13 +171,12 @@ comp3([H | _T], _ExitType, Type, Fun, Rank, Acc)
        orelse is_record(H, reject)
        orelse is_record(H, goto_EXT) ->
     Rank2 = bump(Rank),
-    {Type, Rank2, lists:flatten(lists:reverse([Fun(H, Rank2) | Acc]))};
+    {Type, Rank2, lists:flatten(lists:reverse([Fun(H, Rank) | Acc]))};
 % gather is also a terminal- our gathers always have a default or a repeat
 % value in them so they never drop through (hard to reason about for most
 % folk IMHO - YMMV, but hell mend ye...)
 comp3([#gather{} = G | _T], _ExitType, _Type, Fun, Rank, Acc) ->
-    Rank2 = bump(Rank),
-    NewRank = incr(Rank2),
+    NewRank = incr(Rank),
     {Resp, Def, Repeat} = split_out(G#gather.after_EXT, [], [], []),
     % no hangup on body
     {_, NewRank1,  NewBody1} = comp3(G#gather.body, nohangup, state,
@@ -195,9 +194,9 @@ comp3([#gather{} = G | _T], _ExitType, _Type, Fun, Rank, Acc) ->
                                      Fun, NewRank5, []),
     % drop the tail here (and drop the hangup!)
     % also make a close for the <gather> xml
-    comp3([], nohangup, state, Fun, Rank2,
+    comp3([], nohangup, state, Fun, bump(Rank),
           [NewBody4, NewBody3, NewBody2, CloseGather, Menu,
-           NewBody1, Fun(G, Rank2) | Acc]);
+           NewBody1, Fun(G, Rank) | Acc]);
 % otherwise we want all calls to end so we finalise with a HANGUP
 % if they need a hangup
 comp3([], hangup, Type, Fun, Rank, Acc) ->
@@ -218,39 +217,39 @@ comp3([H | T], ExitType, Type, Fun, Rank, Acc)
        orelse is_record(H, conference)
        orelse is_record(H, function_EXT) ->
     Rank2 = bump(Rank),
-    comp3(T, ExitType, Type, Fun, Rank2, [Fun(H, Rank2) | Acc]);
+    comp3(T, ExitType, Type, Fun, Rank2, [Fun(H, Rank) | Acc]);
 comp3([#dial{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
-    Rank2 = bump(Rank),
-    NewRank = incr(Rank2),
+    NewRank = incr(Rank),
     % we don't want dial to terminate with a hangup
     {_, NewRank2, NewBody} = comp3(D#dial.body, nohangup, state, Fun,
                                    NewRank, []),
     NewRank3 = bump(NewRank2),
     CloseDial = Fun("Dial", NewRank3),
-    NewRec = Fun(D, Rank2),
+    NewRec = Fun(D, Rank),
+    Rank2 = bump(Rank),
     comp3(T, ExitType, state, Fun, Rank2,
           [CloseDial, NewBody, NewRec | Acc]);
 comp3([#response_EXT{} = R | T], ExitType, _Type, Fun, Rank, Acc) ->
-    Rank2 = bump(Rank),
-    NewRank = incr(Rank2),
+    NewRank = incr(Rank),
     % we want response to end in a hangup{} if they terminate
     {_, _NewRank2, NewBody} = comp3(R#response_EXT.body, hangup, state,
                                     Fun, NewRank, []),
-    comp3(T, ExitType, state, Fun, Rank2,
-          [NewBody, Fun(R, Rank2) | Acc]);
-comp3([#default_EXT{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
     Rank2 = bump(Rank),
-    NewRank = incr(Rank2),
+    comp3(T, ExitType, state, Fun, Rank2,
+          [NewBody, Fun(R, Rank) | Acc]);
+comp3([#default_EXT{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
+    NewRank = incr(Rank),
     % we want default to end in a hangup{} if they terminate
     {_, _NewRank2, NewBody} = comp3(D#default_EXT.body, hangup, state,
                                     Fun, NewRank, []),
+    Rank2 = bump(Rank),
     comp3(T, ExitType, state, Fun, Rank2,
-          [NewBody, Fun(D, Rank2) | Acc]);
+          [NewBody, Fun(D, Rank) | Acc]);
 % convert repeat into a #goto_EXT{} record
 comp3([#repeat_EXT{} | T], ExitType, _Type, Fun, Rank, Acc) ->
     Rank2 = bump(Rank),
     G = #goto_EXT{goto = unbump(Rank)},
-    comp3(T, ExitType, state, Fun, Rank2, [Fun(G, Rank2) | Acc]).
+    comp3(T, ExitType, state, Fun, Rank2, [Fun(G, Rank) | Acc]).
 
 make_menu(_Resp, _Default, undefined, _Fun, Rank) ->
     {state, Rank, []};

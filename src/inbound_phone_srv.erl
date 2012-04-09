@@ -206,7 +206,7 @@ exec2(next, State, Action, Acc) ->
             NewS = State#state{currentstate = Next},
             exec2(next, NewS, Action, [X | Acc]);
         {CS, {xml, X}, into} ->
-            Into = get_next(CS, FSM, fun incr/1, fun twiml:bump/1),
+            Into = get_next(CS, FSM, fun twiml:incr/1, fun twiml:bump/1),
             NewS = State#state{currentstate = Into},
             exec2(next, NewS, Action, [X | Acc]);
         {CS, {xml, X}, repeat} ->
@@ -236,10 +236,6 @@ get_next(CS, FSM, Fun1, Fun2) ->
         {State2, _, _} -> State2
     end.
 
-% the twiml compiler passes in a new state like "1.0" and then increments it
-% on the pass - we don't, so we have to increment and bump in a oner
-incr(CS) -> twiml:bump(twiml:incr(CS)).
-
 respond(State, Rec) ->
     #state{currentstate = CS, fsm = FSM} = State,
     case lists:keyfind(CS, 1, FSM) of
@@ -257,7 +253,7 @@ match(State, Action, D, Acc) ->
             exit("invalid state in match");
         {CS, #response_EXT{response = R} = _Resp, _} ->
             case D of
-                R -> NewCS = get_next(CS, FSM, fun incr/1,
+                R -> NewCS = get_next(CS, FSM, fun twiml:incr/1,
                                       fun twiml:bump/1),
                      NewS = State#state{currentstate = NewCS},
                      exec2(next, NewS, Action, []);
@@ -275,7 +271,7 @@ get_next_default(State, Action, Acc) ->
         false ->
             exit("invalid state in get_next_default");
         {CS, #default_EXT{}, _} ->
-            NewCS = get_next(CS, FSM, fun incr/1,
+            NewCS = get_next(CS, FSM, fun twiml:incr/1,
                              fun twiml:bump/1),
             NewS = State#state{currentstate = NewCS},
             exec2(next, NewS, Action, []);
