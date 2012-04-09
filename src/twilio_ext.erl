@@ -30,7 +30,7 @@ handle(Params, Path) ->
     case Records#twilio.call_status of
         "ringing" ->
             io:format("phone ringing...~n"),
-            TwiML_EXT = twiml_EXT_recipies:recipe(7),
+            TwiML_EXT = twiml_EXT_recipies:recipe(12),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
             case Records#twilio.recording of

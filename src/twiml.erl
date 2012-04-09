@@ -16,6 +16,7 @@
          compile/3,
          bump/1,
          unbump/1,
+         unbump_on/1,
          incr/1,
          decr/1
         ]).
@@ -181,17 +182,18 @@ comp3([#gather{} = G | _T], _ExitType, _Type, Fun, Rank, Acc) ->
     % no hangup on body
     {_, NewRank1,  NewBody1} = comp3(G#gather.body, nohangup, state,
                                      Fun, NewRank, []),
-    {_, NewRank2,  Menu} = make_menu(Resp, Def, G#gather.autoMenu_EXT,
+    {_, _NewRank2,  Menu} = make_menu(Resp, Def, G#gather.autoMenu_EXT,
                                      Fun, NewRank1),
-    NewRank3 = bump(NewRank2),
+    NewRank3 = bump(NewRank),
     CloseGather = Fun("Gather", NewRank3),
+    NewRank4 = bump(NewRank3),
     % no hangup on response - they get a hangup internally
-    {_, NewRank4,  NewBody2} = comp3(Resp,   nohangup, state,
-                                     Fun, NewRank3, []),
-    {_, NewRank5,  NewBody3} = comp3(Def,    nohangup, state,
+    {_, NewRank5,  NewBody2} = comp3(Resp,   nohangup, state,
                                      Fun, NewRank4, []),
-    {_, _NewRank6, NewBody4} = comp3(Repeat, nohangup, state,
+    {_, NewRank6,  NewBody3} = comp3(Def,    nohangup, state,
                                      Fun, NewRank5, []),
+    {_, _NewRank7, NewBody4} = comp3(Repeat, nohangup, state,
+                                     Fun, NewRank6, []),
     % drop the tail here (and drop the hangup!)
     % also make a close for the <gather> xml
     comp3([], nohangup, state, Fun, bump(Rank),
@@ -219,7 +221,7 @@ comp3([H | T], ExitType, Type, Fun, Rank, Acc)
     Rank2 = bump(Rank),
     comp3(T, ExitType, Type, Fun, Rank2, [Fun(H, Rank) | Acc]);
 comp3([#dial{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
-    NewRank = bump(incr(Rank)),
+    NewRank = incr(Rank),
     % we don't want dial to terminate with a hangup
     {_, NewRank2, NewBody} = comp3(D#dial.body, nohangup, state, Fun,
                                    NewRank, []),
@@ -320,7 +322,10 @@ make_fsm(Rec, Rank) when is_record(Rec, default_EXT) ->
 make_fsm(Rec, Rank) when is_record(Rec, goto_EXT) ->
     {Rank, Rec, Rec#goto_EXT.goto};
 make_fsm(List, Rank) when is_list(List) ->
-    {Rank,{xml, "</" ++ List ++ ">"}, wait}.
+    case string:to_lower(List) of
+        "dial"   -> {Rank,{xml, "</" ++ List ++ ">"}, wait};
+        "gather" -> {Rank,{xml, "</" ++ List ++ ">"}, gather}
+end.
 
 fix_up({xml, XML}) ->
     % might come back as <blah></blah> or <bleh/> need to fix up both
@@ -753,11 +758,17 @@ bump(Rank) ->
     NewT = integer_to_list(list_to_integer(T) + 1),
     string:join(lists:reverse([NewT | H]), ".").
 
+unbump_on(Rank) ->
+    [_T , T2 | H] = lists:reverse(string:tokens(Rank, ".")),
+    T2a = list_to_integer(T2),
+    T2b =  integer_to_list(T2a + 1),
+    string:join(lists:reverse([T2b | H]), ".").
+
 unbump(Rank) ->
     [_T | H] = lists:reverse(string:tokens(Rank, ".")),
     string:join(lists:reverse(H), ".").
 
-incr(Rank) -> Rank ++ ".0".
+incr(Rank) -> Rank ++ ".1".
 decr(Rank) -> List = string:tokens(Rank, "."),
               [_ | Rest]  = lists:reverse(List),
               string:join(lists:reverse(Rest), ".").
