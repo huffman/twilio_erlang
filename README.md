@@ -16,6 +16,14 @@ also format twiml responses.
 Usage
 =====
 
+There are two ways to use twilio_erlang:
+
+* traditional
+* extended TwiML
+
+Traditional Usage
+=================
+
 ## Core
 
 There are two core API modules:
@@ -154,6 +162,159 @@ called State is        "Edinburgh"
 
 ```
 **NOTE** This work is not complete. the various Twilio parameters are being implemented gradually. Paramaters not currently handled are returned as a list in the field `#twilio.custom_params`. If you see parameters in that field consider adding clauses to the function `twilio_web_util:make_r/7` and adding information to the records in `twilio_web.hrl`.
+
+Why Extended TwiML?
+===================
+
+*BETA*
+
+This is a major change to the operation of twilio_erlang - it handles incoming calls - but not yet inbound SMS.
+
+TwiML is a set of Twilio facing XML commands that have been implemented in records.
+
+Extended TwiML allows you to mix Erlang facing records with the Twilio-facing ones and makes it trivially easy to build Twilio applications.
+
+Extended TwiML has a number of additions made to it:
+* the record #gather{} has 2 additional fields
+  * autoMenu_EXT
+  * after_EXT
+* there are new records
+  * #response_EXT{}
+  * #repeat_EXT{}
+  * #default_EXT{}
+  * #function_EXT{}
+  * #goto_EXT{}
+
+The problems that Extended TwiML is solving are:
+* it is a pain to set up IVR in tradtional Twilio because you have to
+  faff around with a compile time state machine
+  * Extended TwiML lets you build a run-time state machine by
+  * managing the responses for you
+* speaking to Twilio is easy with TwiML - speaking to Erlang is off-topic
+  * Extended TwiML makes it trivial to call out to Erlang
+* there is the whole palaver with Twilio making multiple posts to you some of them containing notification that recordings have been made, some that calls are finished
+  * Extended TwiML takes care of that for you
+* there is no compile-time correctness checks for TwiML
+  * Extended Twiml adds a validation step which checks TwiML for correctness
+* you are responsible for making sure that the IVR system you build is well=behaved from a users perspective
+  * Extended TwiML does this at compile time
+* it is hard to reason about what a TwiML-based system is doing without poring over the code
+  * Extended TwiMl compiles not only to an executable Finite State Machine but aslo an ascii or html representation of it that makes understanding what is goind on a cinch
+
+This is a piece of extended TwiML from the file recipe 1 in ``twiml_EXT_recipies.erl``:
+
+```erlang
+    [#say{text = "yowza"}];
+```
+
+The ascii compilation of this is:
+```
+1 - SAY "yowza"
+2 - HANGUP
+```
+
+It compiles to the following state machine:
+```erlang
+[{"1",{{xml,"<Say>yowza</Say>"},next}},
+ {"2",{{xml,"<Hangup/>"},exit}}]
+```
+
+Which executes in a finite state machine inside ``inbound_phone_srv.erl``
+
+This example is not so interesting. Recipe 9 is more interesting:
+
+```erlang
+    SAY1 = #say{text = "My you are looking swish"},
+    RESPONSE1 = #response_EXT{title = "Praise", response = "1", body = [SAY1]},
+
+    SAY2 = #say{text = "What you looking at, fannybaws?", language = "en-gb"},
+    RESPONSE2 = #response_EXT{title = "Abuse", response = "2", body = [SAY2]},
+
+    SAYD = #say{text = "can you no use a phone, bawbag?", language = "de"},
+    DEFAULT = #default_EXT{title = "a slagging", body = [SAYD]},
+
+    % now put them all together
+    [#gather{numDigits = 1, autoMenu_EXT = true, after_EXT = [RESPONSE1,
+                                                              RESPONSE2,
+                                                              DEFAULT]}];
+```
+
+The ascii compilation of this is:
+```
+1 - GATHER (request Keypad Input)
+    1.1 - SAY "Press 1 for PRAISE. Press 2 for ABUSE. Do nothing for A SLAGGING"
+    1.2 - end of Gather (wait for response)
+    1.3 - Response 1 : PRAISE
+        1.3.1 - SAY "My you are looking swish"
+        1.3.2 - HANGUP
+    1.4 - Response 2 : ABUSE
+        1.4.1 - SAY "What you looking at, fannybaws?"  en-gb
+        1.4.2 - HANGUP
+    1.5 - Default : A SLAGGING
+        1.5.1 - SAY "can you no use a phone, bawbag?"  de
+        1.5.2 - HANGUP
+```
+
+and the FSM version is:
+```erlang
+[{"1",{{xml,"<Gather numDigits=\"1\">"},into}},
+ {"1.1",
+  {{xml,"<Say>Press 1 for PRAISE. Press 2 for ABUSE. Do nothing for A SLAGGING</Say>"},
+   next}},
+ {"1.2",{{xml,"</Gather>"},gather}},
+ {"1.3",{{response_EXT,"1","Praise",[]},into}},
+ {"1.3.1",{{xml,"<Say>My you are looking swish</Say>"},next}},
+ {"1.3.2",{{xml,"<Hangup/>"},exit}},
+ {"1.4",{{response_EXT,"2","Abuse",[]},into}},
+ {"1.4.1",
+  {{xml,"<Say language=\"en-gb\">What you looking at, fannybaws?</Say>"}, next}},
+ {"1.4.2",{{xml,"<Hangup/>"},exit}},
+ {"1.5",{{default_EXT,"a slagging",[]},next}},
+ {"1.5.1",
+  {{xml,"<Say language=\"de\">can you no use a phone, bawbag?</Say>"}, next}},
+ {"1.5.2",{{xml,"<Hangup/>"},exit}}]
+```
+
+The part that makes it super-interesting is the ability to call out to Erlang fuctions natively. Recipe 12 gives the simplest version of this:
+
+```Erlang
+    [#function_EXT{title = "call out to function", module = 'twiml_EXT_recipies',
+                   fn = 'external_function'}]
+```
+
+This compiles to ascii as:
+```
+1 - Call out to CALL OUT TO FUNCTION (twiml_EXT_recipies:external_function)
+2 - HANGUP
+```
+
+At run time this call the function ``twiml_EXT_recipies:external_function/1`` passing the #state{} record from ``inbound_phone_srv.erl``
+
+The signature of the external function is very straightforward:
+```erlang
+external_function(_State) ->
+    {random(), [], []}.
+```
+
+It returns a three part tuple, the most important part is the first element - some valid Extended TwiML.
+
+This is compiled and inserted into the Finite State Machine replacing the call-out entry. The FSM is then revaluated.
+
+The two other parameters to be returned are lists of functions of arity/1 to be executed on two events on the call:
+* notification of a recording of part of the call
+* notification that the master call complete record has been received and the inbound_phone supervisor is about to delete the child that is handling the call.
+
+
+Extended TwiML Usage
+====================
+
+There are a number of steps to be gone through before using Extended TwiML:
+* set up your Twilio Account and populate the .hrl file ```twilio_acc.hrl```
+   * Extended TwiML users a worker process per call in progress and uses the status callbacks to delete them when they are finished. You need to set the *Status Callback URL* of your twilio app and number to be the same as the *Voice Request URL* and *SMS Request URL*.
+   * Extended TwiML only accepts POST's and not GET's.
+* the file ```twilio_EXT_recipies.erl``` contains a macro ```?MYPHONE`` which specifies a phone to send text messages to or do call forwarding to for some of the recipies - you will need to set it. Bear in mind you will need a minimum of two phones to test some of the recipes (call forwarding, conference calls, etc).
+* Extended TwiML is commented out in ``twilio_web.hrl``
+* NOTE Extended TwiML (mostly) avoids you needing to build State Machines in URLs - with one exception. There is a #goto_EXT{} record which forces a goto on to Twilio - it tells Twilio to ask for a particular state of the FSM. If you have bound your application to ``http://example.com/some/page`` all the POST's will come to it - with the exception of *GOTO's*. If there is a record ``#goto_EXT{goto = "1.2.3"} the next twilio request will be to ``http://example.com/some/page/1.2.3`` The example in ``twilio_ext.hrl`` is set up for Twilio being bound to the root (ie ``http://example.com/``). It you bind it elsewhere you will need to handle those paths yourself.
 
 License
 =======

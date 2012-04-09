@@ -91,7 +91,7 @@ recipy2(9) ->
     [#gather{numDigits = 1, autoMenu_EXT = true, after_EXT = [RESPONSE1,
                                                               RESPONSE2,
                                                               DEFAULT]}];
-% IVR with a default
+% IVR with a repeat
 recipy2(10) ->
     % get yer bits sorted out
     SAY1 = #say{text = "My you are looking swish"},
@@ -138,4 +138,4 @@ recipy2(12) ->
 %
 % most of the time just return two empty lists
 external_function(_State) ->
-    {recipe(10), [], []}.
+    {random(), [], []}.
