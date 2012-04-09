@@ -298,7 +298,7 @@ sort(List) ->
     lists:sort(Fun, List).
 
 make_fsm(Rec, Rank) when is_record(Rec, hangup) ->
-    {Rank, encode_record(Rec), exit};
+    {Rank, {encode_record(Rec), exit}};
 make_fsm(Rec, Rank) when is_record(Rec, say)
                          orelse is_record(Rec, play)
                          orelse is_record(Rec, record)
@@ -308,23 +308,23 @@ make_fsm(Rec, Rank) when is_record(Rec, say)
                          orelse is_record(Rec, reject)
                          orelse is_record(Rec, client)
                          orelse is_record(Rec, conference) ->
-    {Rank, encode_record(Rec), next};
+    {Rank, {encode_record(Rec), next}};
 make_fsm(Rec, Rank) when is_record(Rec, function_EXT) ->
-    {Rank, Rec, next};
+    {Rank, {Rec, next}};
 make_fsm(Rec, Rank) when is_record(Rec, gather) ->
-    {Rank, fix_up(encode_record(Rec#gather{body = []})), into};
+    {Rank, {fix_up(encode_record(Rec#gather{body = []})), into}};
 make_fsm(Rec, Rank) when is_record(Rec, dial) ->
-    {Rank, fix_up(encode_record(Rec#dial{body = []})), into};
+    {Rank, {fix_up(encode_record(Rec#dial{body = []})), into}};
 make_fsm(Rec, Rank) when is_record(Rec, response_EXT) ->
-    {Rank, Rec#response_EXT{body = []}, into};
+    {Rank, {Rec#response_EXT{body = []}, into}};
 make_fsm(Rec, Rank) when is_record(Rec, default_EXT) ->
-    {Rank, Rec#default_EXT{body = []}, next};
+    {Rank, {Rec#default_EXT{body = []}, next}};
 make_fsm(Rec, Rank) when is_record(Rec, goto_EXT) ->
-    {Rank, Rec, Rec#goto_EXT.goto};
+    {Rank, {Rec, Rec#goto_EXT.goto}};
 make_fsm(List, Rank) when is_list(List) ->
     case string:to_lower(List) of
-        "dial"   -> {Rank,{xml, "</" ++ List ++ ">"}, wait};
-        "gather" -> {Rank,{xml, "</" ++ List ++ ">"}, gather}
+        "dial"   -> {Rank, {{xml, "</" ++ List ++ ">"}, wait}};
+        "gather" -> {Rank, {{xml, "</" ++ List ++ ">"}, gather}}
 end.
 
 fix_up({xml, XML}) ->
