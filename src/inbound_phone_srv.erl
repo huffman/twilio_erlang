@@ -187,7 +187,6 @@ exec2(wait, State, _Action, Acc) ->
     {CS, Msg};
 exec2(next, State, Action, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    %io:format("In exec2 FSM is ~p~nCS is ~p~n", [FSM, CS]),
     case lists:keyfind(CS, 1, FSM) of
         false ->
             exit("invalid state in exec2");
@@ -195,23 +194,22 @@ exec2(next, State, Action, Acc) ->
         {CS, {xml, X}, exit} ->
             Reply = lists:reverse([X | Acc]),
             {CS, Reply};
-        {CS, {xml, X}, wait} ->
+        {CS, {xml, X}, gather} ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                                      fun twiml:unbump/1),
+                                      fun twiml:unbump_on/1),
             NewS = State#state{currentstate = NewCS},
             {_, Default} = get_next_default(NewS, Action, []),
             Reply = lists:reverse([Default, X | Acc]),
             {CS, Reply};
+        {CS, {xml, X}, wait} ->
+            Reply = lists:reverse([X | Acc]),
+            {CS, Reply};
         {CS, {xml, X}, next} ->
-            Next = get_next(CS, FSM, fun twiml:bump/1, fun twiml:unbump/1),
+            Next = get_next(CS, FSM, fun twiml:bump/1, fun twiml:unbump_on/1),
             NewS = State#state{currentstate = Next},
             exec2(next, NewS, Action, [X | Acc]);
         {CS, {xml, X}, into} ->
             Into = get_next(CS, FSM, fun twiml:incr/1, fun twiml:bump/1),
-            NewS = State#state{currentstate = Into},
-            exec2(next, NewS, Action, [X | Acc]);
-        {CS, {xml, X}, repeat} ->
-            Into = get_next(CS, FSM, fun twiml:unbump/1, fun twiml:decr/1),
             NewS = State#state{currentstate = Into},
             exec2(next, NewS, Action, [X | Acc]);
         {CS, #response_EXT{}, into} ->
@@ -240,11 +238,13 @@ get_next(CS, FSM, Fun1, Fun2) ->
 respond(State, Rec) ->
     #state{currentstate = CS, fsm = FSM} = State,
     case lists:keyfind(CS, 1, FSM) of
-        false         -> exit("invalid state in respond");
-        {CS, _, wait} -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                                          fun twiml:unbump/1),
-                         NewS = State#state{currentstate = NewCS},
-                         execute(NewS, Rec)
+        false ->
+            exit("invalid state in respond");
+        {CS, _, Type} when Type == wait orelse Type == gather ->
+            NewCS = get_next(CS, FSM, fun twiml:bump/1,
+                             fun twiml:unbump_on/1),
+            NewS = State#state{currentstate = NewCS},
+            execute(NewS, Rec)
     end.
 
 match(State, Action, D, Acc) ->
@@ -259,7 +259,7 @@ match(State, Action, D, Acc) ->
                      NewS = State#state{currentstate = NewCS},
                      exec2(next, NewS, Action, []);
                _  -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                                      fun twiml:unbump/1),
+                                      fun twiml:unbump_on/1),
                      NewS = State#state{currentstate = NewCS},
                      match(NewS, Action, D, Acc)
             end
@@ -267,7 +267,6 @@ match(State, Action, D, Acc) ->
 
 get_next_default(State, Action, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    %io:format("In get_next_default CS is ~p~nFSM is ~p~n", [CS, FSM]),
     case lists:keyfind(CS, 1, FSM) of
         false ->
             exit("invalid state in get_next_default");
@@ -280,7 +279,7 @@ get_next_default(State, Action, Acc) ->
             {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"};
         _Other ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                             fun twiml:unbump/1),
+                             fun twiml:unbump_on/1),
             NewS = State#state{currentstate = NewCS},
             get_next_default(NewS, Action, Acc)
     end.
