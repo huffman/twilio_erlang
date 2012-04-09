@@ -104,7 +104,7 @@ handle_call(Request, _From, State) ->
                    {ok, State};
                {start_call, Rec} ->
                    execute(State, {start_call, now(), Rec});
-              {recording_notification, _Params} ->
+              {recording_notification, _Params, _Path} ->
                   io:format("Got details of a recording that has been made. "
                             ++ "You should do something with it mebbies?~n"),
                   {ok, State};
@@ -112,7 +112,7 @@ handle_call(Request, _From, State) ->
                  respond(State, Rec);
               {goto_state, Rec, Goto} ->
                   NewState = State#state{currentstate = Goto},
-                  execute(NewState, {"goto " + Goto, now(), Rec});
+                  execute(NewState, {"goto " ++ Goto, now(), Rec});
               {Other, _Rec} ->
                    io:format("Got ~p call in inbound_phone_srv~n", [Other]),
                    {ok, State}
