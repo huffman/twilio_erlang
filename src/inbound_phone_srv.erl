@@ -31,7 +31,8 @@
 -include("twilio_web.hrl").
 
 -record(state, {twiml_ext = null, initial_params = null, fsm = null,
-               currentstate = "1", history = []}).
+               currentstate = "1", history = [], rec_notify_fns = [],
+               complete_notify_fns = []}).
 
 %%%===================================================================
 %%% API
@@ -68,14 +69,13 @@ start_link(Params, TwiML) ->
 %%--------------------------------------------------------------------
 init([Params, TwiML_EXT]) ->
     FSM = case twiml:is_valid(TwiML_EXT) of
-                   false ->
-                       Tw = [#say{text = "sorry, this call has been setup "
+              false ->
+                  Tw = [#say{text = "sorry, this call has been setup "
                                   ++ "incorrectly"}],
-                      orddict:from_list(twiml:compile(Tw));
+                  orddict:from_list(twiml:compile(Tw));
                    true ->
-                       orddict:from_list(twiml:compile(TwiML_EXT))
-               end,
-    io:format("FSM is init is ~p~n", [FSM]),
+                  orddict:from_list(twiml:compile(TwiML_EXT))
+          end,
     {ok, #state{twiml_ext = TwiML_EXT, initial_params = Params,
                fsm = FSM, history = [{init, now(), Params}]}}.
 
@@ -97,17 +97,21 @@ handle_call(Request, _From, State) ->
     {Reply, NewS}
         = case Request of
                {call_complete, Rec} ->
-                   % we do nothing, but you might want to squirrell away the
-                   % duration for bill purposes
-                   spawn(timer, apply_after, [1000, inbound_phone_srv,
-                                              delete_self,
-                                              [Rec#twilio.call_sid]]),
-                   {ok, State};
-               {start_call, Rec} ->
-                   execute(State, {start_call, now(), Rec});
-              {recording_notification, _Params, _Path} ->
+                  % we do nothing, but you might want to squirrell away the
+                  % duration for bill purposes
+                  % apply the complete notification fns
+                  [Fun(Rec) || Fun <- State#state.complete_notify_fns],
+                  spawn(timer, apply_after, [1000, inbound_phone_srv,
+                                             delete_self,
+                                             [Rec#twilio.call_sid]]),
+                  {ok, State};
+              {start_call, Rec} ->
+                  execute(State, {start_call, now(), Rec});
+              {recording_notification, Rec, _Path} ->
                   io:format("Got details of a recording that has been made. "
                             ++ "You should do something with it mebbies?~n"),
+                  % apply the complete notification fns
+                  [Fun(Rec) || Fun <- State#state.rec_notify_fns],
                   {ok, State};
               {gather_response, Rec} ->
                  respond(State, Rec);
@@ -187,60 +191,61 @@ exec2(wait, State, _Action, Acc) ->
     {CS, Msg};
 exec2(next, State, Action, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    case orddict:find_key(CS, FSM) of
+    case orddict:find(CS, FSM) of
         error ->
             exit("invalid state in exec2");
         % these are the terminal clauses
-        {ok,  {{CS, {xml, X}, exit}}} ->
+        {ok, {{xml, X}, exit}} ->
             Reply = lists:reverse([X | Acc]),
             {CS, Reply};
-        {ok, {{CS, {xml, X}, gather}}} ->
+        {ok, {{xml, X}, gather}} ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
                              fun twiml:unbump_on/1),
             NewS = State#state{currentstate = NewCS},
             {_, Default} = get_next_default(NewS, Action, []),
             Reply = lists:reverse([Default, X | Acc]),
             {CS, Reply};
-        {ok, {{CS, {xml, X}, wait}}} ->
+        {ok, {{xml, X}, wait}} ->
             Reply = lists:reverse([X | Acc]),
             {CS, Reply};
-        {ok, {{CS, {xml, X}, next}}} ->
+        {ok, {{xml, X}, next}} ->
             Next = get_next(CS, FSM, fun twiml:bump/1, fun twiml:unbump_on/1),
             NewS = State#state{currentstate = Next},
             exec2(next, NewS, Action, [X | Acc]);
-        {ok, {{CS, {xml, X}, into}}} ->
+        {ok, {{xml, X}, into}} ->
             Into = get_next(CS, FSM, fun twiml:incr/1, fun twiml:bump/1),
             NewS = State#state{currentstate = Into},
             exec2(next, NewS, Action, [X | Acc]);
-        {ok,{{CS, #response_EXT{}, into}}} ->
+        {ok, {#response_EXT{}, into}} ->
             InProg = Action#twilio.inprogress,
             #twilio_inprogress{digits = D} = InProg,
             match(State, Action, D, Acc);
-        {ok, {{CS, #function_EXT{module = M, fn = F}, next}}} ->
-            Return = apply_function(M, F, State),
-            io:format("Returning from function with ~p~n", [Return]);
-        {ok, {{_CS, #goto_EXT{}, Goto}}}  ->
-            {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"}
+        {ok, {#function_EXT{module = M, fn = F}, next}} ->
+            NewState = apply_function(M, F, State),
+            % just execute the new FSM
+            exec2(next, NewState, Action, []);
+         {ok, {#goto_EXT{}, Goto}} ->
+            {Goto, "<Redirect>./" ++ Goto ++ "</Redirect>"}
     end.
 
 get_next(CS, FSM, Fun1, Fun2) ->
     Next = Fun1(CS),
-    case orddict:fetch(Next, FSM) of
+    case orddict:find(Next, FSM) of
         error ->
             Next2 = Fun2(CS),
-            case orddict:fetch(Next2, FSM) of
-                error                 -> exit("invalid state in get_next");
-                {ok, {State, {_, _}}} -> State
+            case orddict:find(Next2, FSM) of
+                error  -> exit("invalid state in get_next");
+                {ok, {_, _}} -> Next2
             end;
-        {ok, {State2, {_, _}}} -> State2
+        {ok, {_, _}} -> Next
     end.
 
 respond(State, Rec) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    case orddict:fetch(CS, FSM) of
+    case orddict:find(CS, FSM) of
         error ->
             exit("invalid state in respond");
-        {ok, {CS, {_, Type}}} when Type == wait orelse Type == gather ->
+        {ok, {_, Type}} when Type == wait orelse Type == gather ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
                              fun twiml:unbump_on/1),
             NewS = State#state{currentstate = NewCS},
@@ -249,33 +254,33 @@ respond(State, Rec) ->
 
 match(State, Action, D, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    case orddict:fetch(CS, FSM) of
+    case orddict:find(CS, FSM) of
         error ->
             exit("invalid state in match");
-        {ok, {CS, {#response_EXT{response = R} = _Resp, _}}} ->
+        {ok, {#response_EXT{response = R} = _Resp, _}} ->
             case D of
                 R -> NewCS = get_next(CS, FSM, fun twiml:incr/1,
                                       fun twiml:bump/1),
                      NewS = State#state{currentstate = NewCS},
                      exec2(next, NewS, Action, []);
-                _  -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                                       fun twiml:unbump_on/1),
-                      NewS = State#state{currentstate = NewCS},
-                      match(NewS, Action, D, Acc)
+                _ -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
+                                      fun twiml:unbump_on/1),
+                     NewS = State#state{currentstate = NewCS},
+                     match(NewS, Action, D, Acc)
             end
     end.
 
 get_next_default(State, Action, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    case orddict:fetch(CS, FSM) of
+    case orddict:find(CS, FSM) of
         error ->
             exit("invalid state in get_next_default");
-        {ok, {{CS, #default_EXT{}, _}}} ->
+        {ok, {#default_EXT{}, _}} ->
             NewCS = get_next(CS, FSM, fun twiml:incr/1,
                              fun twiml:bump/1),
             NewS = State#state{currentstate = NewCS},
             exec2(next, NewS, Action, []);
-        {ok, {{CS, #goto_EXT{}, Goto}}} ->
+        {ok, {#goto_EXT{}, Goto}} ->
             {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"};
         _Other ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
@@ -285,25 +290,24 @@ get_next_default(State, Action, Acc) ->
     end.
 
 apply_function(Module, Function, State) ->
-    #state{currentstate = CS, fsm = FSM, history = History} = State,
+    #state{currentstate = CS, fsm = FSM, history = History,
+          rec_notify_fns = RNFn, complete_notify_fns = CNFn} = State,
     NewHist = [{"calling " ++ to_list(Module) ++ ":" ++ to_list(Function)
                 ++ "/3"} | History],
-    NewTwiML = apply(to_atom(Module), to_atom(Function), [State]),
-    io:format("NewTwiml is ~p for ~p~n", [NewTwiML, CS]),
+    {NewTwiML, RecFn, CompFn} = apply(to_atom(Module), to_atom(Function), [State]),
     NewCState = twiml:compile(NewTwiML, CS, fsm),
-    io:format("State is ~p~nNewCState is ~p~n",
-              [State, NewCState]),
-    NewFSM1 = orddict:erase(CS, FSM, NewCState),
-    io:format("NewFSM1 is ~p~n", [NewFSM1]),
-    NewFSM2 = append(NewCState, NewFSM1),
-    io:format("NewFSM2 is ~p~n", [NewFSM2]),
-    NewState = State#state{fsm = NewFSM2, history = NewHist},
-    io:format("NewState is ~p~n", [NewState]),
+    NewFSM1 = orddict:erase(CS, FSM),
+    NewFSM2 = store(NewCState, NewFSM1),
+    NewRNFn = lists:merge(RecFn, RNFn),
+    NewCNFn = lists:merge(CompFn, CNFn),
+    NewState = State#state{fsm = NewFSM2, history = NewHist,
+                           rec_notify_fns = NewRNFn,
+                           complete_notify_fns = NewCNFn},
     NewState.
 
-append([], Orddict)           -> Orddict;
-append([{K, V} | T], Orddict) -> NewOrddict = orddict:append(K, V, Orddict),
-                                 append(T, NewOrddict).
+store([], Orddict)           -> Orddict;
+store([{K, V} | T], Orddict) -> NewOrddict = orddict:store(K, V, Orddict),
+                                store(T, NewOrddict).
 
 to_atom(X) when is_atom(X) -> X;
 to_atom(X) when is_list(X) -> list_to_existing_atom(X).

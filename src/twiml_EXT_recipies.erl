@@ -7,7 +7,7 @@
 
 -module(twiml_EXT_recipies).
 
--define(MYPHONE, "+447776251669").
+-define(MYPHONE, "+447776301539").
 
 -include("twilio.hrl").
 -include("twilio_acc.hrl").
@@ -15,20 +15,21 @@
 -export([
          recipe/1,
          random/0,
-         function/1
+         external_function/1
         ]).
 
 random() ->
     {A, B, C} = now(),
     random:seed(A, B, C),
-    N = random:uniform(11),
+    N = random:uniform(12),
     recipe(N).
 
 recipe(N) ->
     TwiML = recipy2(N),
-    io:format("Reciple ~p returns ~p~n", [N, TwiML]),
+    io:format("TwiML is ~p~n", [TwiML]),
     case twiml:is_valid(TwiML) of
-        false -> exit("invalid TwiML");
+        false -> io:format("Invalid TwiML ~p~n", [TwiML]),
+                 exit("invalid TwiML");
         true -> TwiML
     end.
 
@@ -123,8 +124,19 @@ recipy2(11) ->
 % call out to a function
 recipy2(12) ->
     [#function_EXT{title = "call out to function", module = 'twiml_EXT_recipies',
-                   fn = "function"}].
+                   fn = 'external_function'}].
 
-function(State) ->
-    io:format("State is ~p~n", [State]),
-    random().
+% the function that is called gets the whole inbound_phone_srv state
+%
+% a function that is called must return 3 parameters
+% the 1st if a list of valid extended TwiML records
+% the 2nd is a list of Fns of arity 1 to be executed when any
+% recording notification messages come in
+% the 3rd is a list of Fns of arity 1 to be executed when the
+% master call complete notification message comes in
+% the will be passed the appropriate #twilio{} record in
+% the paramater
+%
+% most of the time just return two empty lists
+external_function(_State) ->
+    {random(), [], []}.
