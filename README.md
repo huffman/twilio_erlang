@@ -197,10 +197,10 @@ The problems that Extended TwiML is solving are:
   * Extended TwiML takes care of that for you
 * there is no compile-time correctness checks for TwiML
   * Extended Twiml adds a validation step which checks TwiML for correctness
-* you are responsible for making sure that the IVR system you build is well=behaved from a users perspective
+* you are responsible for making sure that the IVR system you build is well-behaved from a user's perspective
   * Extended TwiML does this at compile time
 * it is hard to reason about what a TwiML-based system is doing without poring over the code
-  * Extended TwiMl compiles not only to an executable Finite State Machine but aslo an ascii or html representation of it that makes understanding what is goind on a cinch
+  * Extended TwiML compiles not only to an executable Finite State Machine but aslo an ascii or html representation of it that makes understanding what is goind on a cinch
 
 This is a piece of extended TwiML from the file recipe 1 in ``twiml_EXT_recipies.erl``:
 
@@ -314,7 +314,6 @@ The two other parameters to be returned are lists of functions of arity/1 to be 
 * notification of a recording of part of the call
 * notification that the master call complete record has been received and the inbound_phone supervisor is about to delete the child that is handling the call.
 
-
 Extended TwiML Usage
 ====================
 
@@ -326,6 +325,17 @@ There are a number of steps to be gone through before using Extended TwiML:
 * the file ```twilio_EXT_recipies.erl``` contains a macro ``?MYPHONE`` which specifies a phone to send text messages to or do call forwarding to for some of the recipies - you will need to set it. Bear in mind you will need a minimum of two phones to test some of the recipes (call forwarding, conference calls, etc).
 * Extended TwiML is commented out in ``twilio_web.hrl``- you will need to uncomment it
 * NOTE Extended TwiML (mostly) avoids you needing to build State Machines in URLs - with one exception. There is a ``#goto_EXT{}`` record which forces a goto on to Twilio - it tells Twilio to ask for a particular state of the FSM. If you have bound your application to ``http://example.com/some/page`` all the POST's will come to it - with the exception of GOTO's. If there is a record ``#goto_EXT{goto = "1.2.3"}`` the next twilio request will be to ``http://example.com/some/page/1.2.3`` The example in ``twilio_ext.hrl`` is set up for Twilio being bound to the root (ie ``http://example.com/``). It you bind it elsewhere you will need to handle those paths yourself.
+
+### Developers' Notes
+
+Extended TwiML has the following api:
+
+* ``twiml:encode/1`` takes a list of TwiML records - silently discards any Twilio Extensions
+* ``twiml:validate/1`` takes a list of TwiML records and validates them as Extended TwimL returning a list of error messages
+* ``twiml:is_valid/1`` like ``validate/1`` except returns ``true`` or ``false``.
+* ``twiml:compile/1`` takes a list of TwiML records and compiles them to the FSM
+* ``twiml:compile/2`` takes a list of TwiML records and a atom which describes the compilation target - can be one of ``html``, ``ascii`` or ``fsm``
+* ``twiml:compile/1`` takes a list of TwiML records and a target atom and a string which determines the FSM entry point - of the form "1.2.3"
 
 License
 =======
