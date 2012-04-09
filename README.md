@@ -259,6 +259,8 @@ The ascii compilation of this is:
         1.5.2 - HANGUP
 ```
 
+Notice that by setting the option ``autoMenu_EXT`` to ``true`` and auto-menu is generated from the responses you have specified.
+
 and the FSM version is:
 
 ```erlang
@@ -294,7 +296,7 @@ This compiles to ascii as:
 2 - HANGUP
 ```
 
-At run time this call the function ``twiml_EXT_recipies:external_function/1`` passing the #state{} record from ``inbound_phone_srv.erl``
+At run time this call the function ``twiml_EXT_recipies:external_function/1`` passing the ``#state{}`` record from ``inbound_phone_srv.erl``
 
 The signature of the external function is very straightforward:
 
@@ -308,6 +310,7 @@ It returns a three part tuple, the most important part is the first element - so
 This is compiled and inserted into the Finite State Machine replacing the call-out entry. The FSM is then revaluated.
 
 The two other parameters to be returned are lists of functions of arity/1 to be executed on two events on the call:
+
 * notification of a recording of part of the call
 * notification that the master call complete record has been received and the inbound_phone supervisor is about to delete the child that is handling the call.
 
