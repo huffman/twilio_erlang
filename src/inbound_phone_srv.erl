@@ -191,35 +191,35 @@ exec2(next, State, Action, Acc) ->
         error ->
             exit("invalid state in exec2");
         % these are the terminal clauses
-        {ok,  {CS, {xml, X}, exit}} ->
+        {ok,  {{CS, {xml, X}, exit}}} ->
             Reply = lists:reverse([X | Acc]),
             {CS, Reply};
-        {ok, {CS, {xml, X}, gather}} ->
+        {ok, {{CS, {xml, X}, gather}}} ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
                              fun twiml:unbump_on/1),
             NewS = State#state{currentstate = NewCS},
             {_, Default} = get_next_default(NewS, Action, []),
             Reply = lists:reverse([Default, X | Acc]),
             {CS, Reply};
-        {ok, {CS, {xml, X}, wait}} ->
+        {ok, {{CS, {xml, X}, wait}}} ->
             Reply = lists:reverse([X | Acc]),
             {CS, Reply};
-        {ok, {CS, {xml, X}, next}} ->
+        {ok, {{CS, {xml, X}, next}}} ->
             Next = get_next(CS, FSM, fun twiml:bump/1, fun twiml:unbump_on/1),
             NewS = State#state{currentstate = Next},
             exec2(next, NewS, Action, [X | Acc]);
-        {ok, {CS, {xml, X}, into}} ->
+        {ok, {{CS, {xml, X}, into}}} ->
             Into = get_next(CS, FSM, fun twiml:incr/1, fun twiml:bump/1),
             NewS = State#state{currentstate = Into},
             exec2(next, NewS, Action, [X | Acc]);
-        {ok,{CS, #response_EXT{}, into}} ->
+        {ok,{{CS, #response_EXT{}, into}}} ->
             InProg = Action#twilio.inprogress,
             #twilio_inprogress{digits = D} = InProg,
             match(State, Action, D, Acc);
-        {ok, {CS, #function_EXT{module = M, fn = F}, next}} ->
+        {ok, {{CS, #function_EXT{module = M, fn = F}, next}}} ->
             Return = apply_function(M, F, State),
             io:format("Returning from function with ~p~n", [Return]);
-        {ok, {_CS, #goto_EXT{}, Goto}}  ->
+        {ok, {{_CS, #goto_EXT{}, Goto}}}  ->
             {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"}
     end.
 
@@ -229,10 +229,10 @@ get_next(CS, FSM, Fun1, Fun2) ->
         error ->
             Next2 = Fun2(CS),
             case orddict:fetch(Next2, FSM) of
-                error               -> exit("invalid state in get_next");
-                {ok, {State, _, _}} -> State
+                error                 -> exit("invalid state in get_next");
+                {ok, {State, {_, _}}} -> State
             end;
-        {ok, {State2, _, _}} -> State2
+        {ok, {State2, {_, _}}} -> State2
     end.
 
 respond(State, Rec) ->
@@ -240,7 +240,7 @@ respond(State, Rec) ->
     case orddict:fetch(CS, FSM) of
         error ->
             exit("invalid state in respond");
-        {ok, {CS, _, Type}} when Type == wait orelse Type == gather ->
+        {ok, {CS, {_, Type}}} when Type == wait orelse Type == gather ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
                              fun twiml:unbump_on/1),
             NewS = State#state{currentstate = NewCS},
@@ -252,7 +252,7 @@ match(State, Action, D, Acc) ->
     case orddict:fetch(CS, FSM) of
         error ->
             exit("invalid state in match");
-        {ok, {CS, #response_EXT{response = R} = _Resp, _}} ->
+        {ok, {CS, {#response_EXT{response = R} = _Resp, _}}} ->
             case D of
                 R -> NewCS = get_next(CS, FSM, fun twiml:incr/1,
                                       fun twiml:bump/1),
@@ -270,12 +270,12 @@ get_next_default(State, Action, Acc) ->
     case orddict:fetch(CS, FSM) of
         error ->
             exit("invalid state in get_next_default");
-        {ok, {CS, #default_EXT{}, _}} ->
+        {ok, {{CS, #default_EXT{}, _}}} ->
             NewCS = get_next(CS, FSM, fun twiml:incr/1,
                              fun twiml:bump/1),
             NewS = State#state{currentstate = NewCS},
             exec2(next, NewS, Action, []);
-        {ok, {CS, #goto_EXT{}, Goto}} ->
+        {ok, {{CS, #goto_EXT{}, Goto}}} ->
             {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"};
         _Other ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
