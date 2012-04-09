@@ -296,7 +296,7 @@ This compiles to ascii as:
 2 - HANGUP
 ```
 
-At run time this call the function ``twiml_EXT_recipies:external_function/1`` passing the ``#state{}`` record from ``inbound_phone_srv.erl``
+At run time this calls the function ``twiml_EXT_recipies:external_function/1`` passing in the ``#state{}`` record from ``inbound_phone_srv.erl``
 
 The signature of the external function is very straightforward:
 
@@ -305,7 +305,7 @@ external_function(_State) ->
     {random(), [], []}.
 ```
 
-It returns a three part tuple, the most important part is the first element - some valid Extended TwiML.
+It takes a single parameter and it returns a three part tuple, the most important part is the first element - some valid Extended TwiML.
 
 This is compiled and inserted into the Finite State Machine replacing the call-out entry. The FSM is then revaluated.
 
@@ -324,8 +324,8 @@ There are a number of steps to be gone through before using Extended TwiML:
    * Extended TwiML users a worker process per call in progress and uses the status callbacks to delete them when they are finished. You need to set the *Status Callback URL* of your twilio app and number to be the same as the *Voice Request URL* and *SMS Request URL*.
    * Extended TwiML only accepts POST's and not GET's.
 * the file ```twilio_EXT_recipies.erl``` contains a macro ``?MYPHONE`` which specifies a phone to send text messages to or do call forwarding to for some of the recipies - you will need to set it. Bear in mind you will need a minimum of two phones to test some of the recipes (call forwarding, conference calls, etc).
-* Extended TwiML is commented out in ``twilio_web.hrl``
-* NOTE Extended TwiML (mostly) avoids you needing to build State Machines in URLs - with one exception. There is a #goto_EXT{} record which forces a goto on to Twilio - it tells Twilio to ask for a particular state of the FSM. If you have bound your application to ``http://example.com/some/page`` all the POST's will come to it - with the exception of *GOTO's*. If there is a record ``#goto_EXT{goto = "1.2.3"} the next twilio request will be to ``http://example.com/some/page/1.2.3`` The example in ``twilio_ext.hrl`` is set up for Twilio being bound to the root (ie ``http://example.com/``). It you bind it elsewhere you will need to handle those paths yourself.
+* Extended TwiML is commented out in ``twilio_web.hrl``- you will need to uncomment it
+* NOTE Extended TwiML (mostly) avoids you needing to build State Machines in URLs - with one exception. There is a ``#goto_EXT{}`` record which forces a goto on to Twilio - it tells Twilio to ask for a particular state of the FSM. If you have bound your application to ``http://example.com/some/page`` all the POST's will come to it - with the exception of *GOTO's*. If there is a record ``#goto_EXT{goto = "1.2.3"} the next twilio request will be to ``http://example.com/some/page/1.2.3`` The example in ``twilio_ext.hrl`` is set up for Twilio being bound to the root (ie ``http://example.com/``). It you bind it elsewhere you will need to handle those paths yourself.
 
 License
 =======
