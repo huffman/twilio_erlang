@@ -319,6 +319,7 @@ Extended TwiML Usage
 ====================
 
 There are a number of steps to be gone through before using Extended TwiML:
+
 * set up your Twilio Account and populate the .hrl file ```twilio_acc.hrl```
    * Extended TwiML users a worker process per call in progress and uses the status callbacks to delete them when they are finished. You need to set the *Status Callback URL* of your twilio app and number to be the same as the *Voice Request URL* and *SMS Request URL*.
    * Extended TwiML only accepts POST's and not GET's.
