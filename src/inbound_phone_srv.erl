@@ -249,7 +249,6 @@ match(State, Action, D, Acc) ->
         false ->
             exit("invalid state in match");
         {CS, #response_EXT{response = R} = _Resp, _} ->
-            io:format("D is ~p R is ~p~n", [D, R]),
             case D of
                 R -> NewCS = get_next(CS, FSM, fun incr/1,
                                       fun twiml:decr/1),
