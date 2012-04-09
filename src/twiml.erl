@@ -241,9 +241,10 @@ comp3([#response_EXT{} = R | T], ExitType, _Type, Fun, Rank, Acc) ->
           [NewBody, Fun(R, Rank2) | Acc]);
 comp3([#default_EXT{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
     Rank2 = bump(Rank),
+    NewRank = incr(Rank2),
     % we want default to end in a hangup{} if they terminate
     {_, _NewRank2, NewBody} = comp3(D#default_EXT.body, hangup, state,
-                                    Fun, Rank2, []),
+                                    Fun, NewRank, []),
     comp3(T, ExitType, state, Fun, Rank2,
           [NewBody, Fun(D, Rank2) | Acc]);
 % convert repeat into a #goto_EXT{} record
