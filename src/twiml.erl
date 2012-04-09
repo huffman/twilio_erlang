@@ -435,6 +435,12 @@ print_2(#function_EXT{title = T, module = M, fn = F}, Rank, Indent,
     io_lib:format("~s~s~s - Call out to ~s (~s:~s)  ~s",
                   [Prefix, pad(Indent), Rank, string:to_upper(T),
                    M, F, Postfix]);
+print_2(#default_EXT{title = T}, Rank, Indent, Prefix, Postfix) ->
+    io_lib:format("~s~s~s - Default : ~s  ~s",
+                  [Prefix, pad(Indent), Rank, string:to_upper(T), Postfix]);
+print_2(#repeat_EXT{}, Rank, Indent, Prefix, Postfix) ->
+    io_lib:format("~s~s~s - REPEAT  ~s",
+                  [Prefix, pad(Indent), Rank, Postfix]);
 print_2(#goto_EXT{goto = G}, Rank, Indent, Prefix, Postfix) ->
     io_lib:format("~s~s~s - GOTO ~s  ~s",
                   [Prefix, pad(Indent), Rank, G, Postfix]);

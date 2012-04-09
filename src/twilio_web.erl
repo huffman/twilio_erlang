@@ -33,16 +33,21 @@ loop(Req) ->
     end,
     "/" ++ Path = Req:get(path),
     PathList = string:tokens(Path, "/"),
-    % two options here
-    % uncomment the first to use Extended TwiML and
-    % the inbound_phone subsystem
-    % to use this option you will need to break out the state from
-    % the path - it will be the last URL segment
+
+    % TRADITIONAL TwiML
+    % uncomment this option to use traditional Twiml and
+    % manual routing
+    %XML = route(PathList, Param),
+
+    % EXTENDED TwiML
+    % uncomment this option to use Extended TwiML
+    % NOTE to use this option you will need to break out the state from
+    %      the path - it will be the last URL segment
     XML = twilio_ext:handle(Params, PathList),
 
-    % uncomment this option to us tradition routing
-    %XML = route(PathList, Param),
+    % finally respond to Twilio
     Req:ok({"text/xml", XML}).
+
 
 %% @doc Routes a twilio request to a handler that will
 %% return a twiml XML document.
