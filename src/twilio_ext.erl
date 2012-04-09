@@ -107,7 +107,7 @@ get_twiml2(10) -> SAY1 = #say{text = "My you are looking swish"},
                  RESPONSE2 = #response_EXT{title = "Abuse", response = "2",
                                            body = [SAY2]},
                  SAYD = #say{text = "can you no use a phone, bawbag?"},
-                 DEFAULT = #default_EXT{title = "slag them off", body = [SAYD]},
+                 DEFAULT = #default_EXT{title = "a slagging", body = [SAYD]},
                  [#gather{numDigits = 1, autoMenu_EXT = true,
                           after_EXT = [RESPONSE1, RESPONSE2, DEFAULT]}].
 

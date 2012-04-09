@@ -172,35 +172,38 @@ code_change(_OldVsn, State, _Extra) ->
 %%%===================================================================
 execute(State, Action) ->
     #state{history = Hist} = State,
-    {NewS, Reply} = exec2(next, State, Action, []),
-    {Reply, State#state{currentstate = NewS,
-                       history = [Action | Hist]}}.
+    {NewS, Msg} = exec2(next, State, Action, []),
+    Reply = "<?xml version=\"1.0\"?><Response>"
+        ++ lists:flatten(Msg) ++ "</Response>",
+    {Reply, State#state{currentstate = NewS, history = [Action | Hist]}}.
 
 exec2(wait, State, _Action, Acc) ->
     #state{currentstate = CS} = State,
     Msg = lists:flatten(lists:reverse(Acc)),
-    Reply = "<?xml version=\"1.0\"?><Response>"
-        ++ Msg ++ "</Response>",
-    {CS, Reply};
+    {CS, Msg};
 exec2(next, State, Action, Acc) ->
     #state{currentstate = CS, fsm = FSM} = State,
-    io:format("In exec2 FSM is ~p~nCS is ~p~n", [FSM, CS]),
+    %io:format("In exec2 FSM is ~p~nCS is ~p~n", [FSM, CS]),
     case lists:keyfind(CS, 1, FSM) of
         false ->
             exit("invalid state in exec2");
         % these are the terminal clauses
         {CS, {xml, X}, exit} ->
-            Reply = wrap(lists:reverse([X | Acc])),
+            Reply = lists:reverse([X | Acc]),
             {CS, Reply};
         {CS, {xml, X}, wait} ->
-            Reply = wrap(lists:reverse([X | Acc])),
+            NewCS = get_next(CS, FSM, fun twiml:bump/1,
+                                      fun twiml:umbump/1),
+            NewS = State#state{currentstate = NewCS},
+            {_, Default} = get_next_default(NewS, Action, []),
+            Reply = lists:reverse([Default, X | Acc]),
             {CS, Reply};
         {CS, {xml, X}, next} ->
             Next = get_next(CS, FSM, fun twiml:bump/1, fun twiml:unbump/1),
             NewS = State#state{currentstate = Next},
             exec2(next, NewS, Action, [X | Acc]);
         {CS, {xml, X}, into} ->
-            Into = get_next(CS, FSM, fun incr/1, fun twiml:decr/1),
+            Into = get_next(CS, FSM, fun incr/1, fun twiml:bump/1),
             NewS = State#state{currentstate = Into},
             exec2(next, NewS, Action, [X | Acc]);
         {CS, {xml, X}, repeat} ->
@@ -230,9 +233,6 @@ get_next(CS, FSM, Fun1, Fun2) ->
 % on the pass - we don't, so we have to increment and bump in a oner
 incr(CS) -> twiml:bump(twiml:incr(CS)).
 
-wrap(List) -> lists:flatten(lists:append(["<?xml version=\"1.0\"?><Response>",
-                                          List, "</Response>"])).
-
 respond(State, Rec) ->
     #state{currentstate = CS, fsm = FSM, history = _Hist} = State,
     case lists:keyfind(CS, 1, FSM) of
@@ -251,7 +251,7 @@ match(State, Action, D, Acc) ->
         {CS, #response_EXT{response = R} = _Resp, _} ->
             case D of
                 R -> NewCS = get_next(CS, FSM, fun incr/1,
-                                      fun twiml:decr/1),
+                                      fun twiml:bump/1),
                      NewS = State#state{currentstate = NewCS},
                      exec2(next, NewS, Action, []);
                _  -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
@@ -260,3 +260,22 @@ match(State, Action, D, Acc) ->
                      match(NewS, Action, D, Acc)
             end
     end.
+
+get_next_default(State, Action, Acc) ->
+    #state{currentstate = CS, fsm = FSM} = State,
+    %io:format("In get_next_default CS is ~p~nFSM is ~p~n", [CS, FSM]),
+    case lists:keyfind(CS, 1, FSM) of
+        false ->
+            exit("invalid state in get_next_default");
+        {CS, #default_EXT{}, _} ->
+            NewCS = get_next(CS, FSM, fun incr/1,
+                             fun twiml:bump/1),
+            NewS = State#state{currentstate = NewCS},
+            exec2(next, NewS, Action, []);
+        _  ->
+            NewCS = get_next(CS, FSM, fun twiml:bump/1,
+                             fun twiml:umbump/1),
+            NewS = State#state{currentstate = NewCS},
+            get_next_default(NewS, Action, Acc)
+    end.
+
