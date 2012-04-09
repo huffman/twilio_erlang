@@ -223,8 +223,7 @@ comp3([#dial{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->
     % we don't want dial to terminate with a hangup
     {_, NewRank2, NewBody} = comp3(D#dial.body, nohangup, state, Fun,
                                    NewRank, []),
-    NewRank3 = bump(NewRank2),
-    CloseDial = Fun("Dial", NewRank3),
+    CloseDial = Fun("Dial", NewRank2),
     NewRec = Fun(D, Rank),
     Rank2 = bump(Rank),
     comp3(T, ExitType, state, Fun, Rank2,
