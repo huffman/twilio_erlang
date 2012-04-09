@@ -26,7 +26,6 @@ random() ->
 
 recipe(N) ->
     TwiML = recipy2(N),
-    io:format("TwiML is ~p~n", [TwiML]),
     case twiml:is_valid(TwiML) of
         false -> io:format("Invalid TwiML ~p~n", [TwiML]),
                  exit("invalid TwiML");
@@ -139,4 +138,4 @@ recipy2(12) ->
 %
 % most of the time just return two empty lists
 external_function(_State) ->
-    {random(), [], []}.
+    {recipe(10), [], []}.
