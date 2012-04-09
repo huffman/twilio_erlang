@@ -175,6 +175,7 @@ TwiML is a set of Twilio facing XML commands that have been implemented in recor
 Extended TwiML allows you to mix Erlang facing records with the Twilio-facing ones and makes it trivially easy to build Twilio applications.
 
 Extended TwiML has a number of additions made to it:
+
 * the record #gather{} has 2 additional fields
   * autoMenu_EXT
   * after_EXT
@@ -186,6 +187,7 @@ Extended TwiML has a number of additions made to it:
   * #goto_EXT{}
 
 The problems that Extended TwiML is solving are:
+
 * it is a pain to set up IVR in tradtional Twilio because you have to
   faff around with a compile time state machine
   * Extended TwiML lets you build a run-time state machine by
