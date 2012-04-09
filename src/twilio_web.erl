@@ -31,12 +31,17 @@ loop(Req) ->
         'POST' ->
             Params = Req:parse_post()
     end,
-    io:format("~p~n", [Req:get(path)]),
     "/" ++ Path = Req:get(path),
     PathList = string:tokens(Path, "/"),
-    io:format("PathList is ~p~n", [PathList]),
+    % two options here
+    % uncomment the first to use Extended TwiML and
+    % the inbound_phone subsystem
+    % to use this option you will need to break out the state from
+    % the path - it will be the last URL segment
     XML = twilio_ext:handle(Params, PathList),
-    io:format("Replying with ~p~n", [XML]),
+
+    % uncomment this option to us tradition routing
+    %XML = route(PathList, Param),
     Req:ok({"text/xml", XML}).
 
 %% @doc Routes a twilio request to a handler that will
