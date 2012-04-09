@@ -335,7 +335,6 @@ Extended TwiML has the following api:
 * ``twiml:is_valid/1`` like ``validate/1`` except returns ``true`` or ``false``.
 * ``twiml:compile/1`` takes a list of TwiML records and compiles them to the FSM
 * ``twiml:compile/2`` takes a list of TwiML records and a atom which describes the compilation target - can be one of ``html``, ``ascii`` or ``fsm``
-* ``twiml:compile/1`` takes a list of TwiML records and a target atom and a string which determines the FSM entry point - of the form "1.2.3"
 
 License
 =======
