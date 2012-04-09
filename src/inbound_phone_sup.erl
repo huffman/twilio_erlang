@@ -19,7 +19,8 @@
          answer_phone/2,
          call_complete/1,
          recording_notification/1,
-         gather_response/1
+         gather_response/1,
+         goto_state/2
          %call_in_progress/2
         ]).
 
@@ -61,6 +62,12 @@ gather_response(Params) ->
     Call = Params#twilio.call_sid,
     Pid = get_pid(Call),
     gen_server:call(Pid, {gather_response, Params}).
+
+-spec goto_state(#twilio{}, list()) -> pid() | string().
+goto_state(Params, State) ->
+    Call = Params#twilio.call_sid,
+    Pid = get_pid(Call),
+    gen_server:call(Pid, {goto_state, Params, State}).
 
 %%--------------------------------------------------------------------
 %% @doc

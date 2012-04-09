@@ -31,7 +31,9 @@ loop(Req) ->
         'POST' ->
             Params = Req:parse_post()
     end,
-    XML = twilio_ext:handle(Params),
+    PathList = "/" ++ Path = Req:get(path),
+    PathList = string:tokens(Path, "/"),
+    XML = twilio_ext:handle(Params, Path),
     io:format("Replying with ~p~n", [XML]),
     Req:ok({"text/xml", XML}).
 
