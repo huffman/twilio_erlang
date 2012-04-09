@@ -189,9 +189,8 @@ Extended TwiML has a number of additions made to it:
 The problems that Extended TwiML is solving are:
 
 * it is a pain to set up IVR in tradtional Twilio because you have to
-  faff around with a compile time state machine
-  * Extended TwiML lets you build a run-time state machine by
-  * managing the responses for you
+  faff around with a compile-time state machine
+  * Extended TwiML lets you build a run-time state machine by managing the responses for you
 * speaking to Twilio is easy with TwiML - speaking to Erlang is off-topic
   * Extended TwiML makes it trivial to call out to Erlang
 * there is the whole palaver with Twilio making multiple posts to you some of them containing notification that recordings have been made, some that calls are finished
@@ -210,12 +209,14 @@ This is a piece of extended TwiML from the file recipe 1 in ``twiml_EXT_recipies
 ```
 
 The ascii compilation of this is:
+
 ```
 1 - SAY "yowza"
 2 - HANGUP
 ```
 
 It compiles to the following state machine:
+
 ```erlang
 [{"1",{{xml,"<Say>yowza</Say>"},next}},
  {"2",{{xml,"<Hangup/>"},exit}}]
@@ -242,6 +243,7 @@ This example is not so interesting. Recipe 9 is more interesting:
 ```
 
 The ascii compilation of this is:
+
 ```
 1 - GATHER (request Keypad Input)
     1.1 - SAY "Press 1 for PRAISE. Press 2 for ABUSE. Do nothing for A SLAGGING"
@@ -258,6 +260,7 @@ The ascii compilation of this is:
 ```
 
 and the FSM version is:
+
 ```erlang
 [{"1",{{xml,"<Gather numDigits=\"1\">"},into}},
  {"1.1",
@@ -285,6 +288,7 @@ The part that makes it super-interesting is the ability to call out to Erlang fu
 ```
 
 This compiles to ascii as:
+
 ```
 1 - Call out to CALL OUT TO FUNCTION (twiml_EXT_recipies:external_function)
 2 - HANGUP
@@ -293,6 +297,7 @@ This compiles to ascii as:
 At run time this call the function ``twiml_EXT_recipies:external_function/1`` passing the #state{} record from ``inbound_phone_srv.erl``
 
 The signature of the external function is very straightforward:
+
 ```erlang
 external_function(_State) ->
     {random(), [], []}.
