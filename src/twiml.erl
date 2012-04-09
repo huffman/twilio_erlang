@@ -146,7 +146,7 @@ remove_undefined(Attrs) ->
     [Attr || {_, Value} = Attr <- Attrs, Value =/= undefined].
 
 compile(Elements) when is_list(Elements) ->
-    compile(Elements, "0", fsm).
+    compile(Elements, "1", fsm).
 
 compile(Elements, Type) when is_list(Elements) ->
     compile(Elements, "1", Type).
