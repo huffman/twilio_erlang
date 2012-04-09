@@ -39,12 +39,20 @@ handle(Params, Path) ->
         "completed" ->
             case Records#twilio.recording of
                 null ->
-                    io:format("call completed...~n"),
-                    ok = inbound_phone_sup:call_complete(Records),
-                    ok;
+                    case Path of
+                        [] ->
+                            io:format("call completed...~n"),
+                            ok = inbound_phone_sup:call_complete(Records),
+                            ok;
+                        Sub ->
+                            io:format("goto ~p segment of call completed...~n",
+                                      [Sub]),
+                            % do nothing here
+                            ok
+                    end;
                 _ ->
                     io:format("notification of recording...~n"),
-                    ok = inbound_phone_sup:recording_notification(Records),
+                    ok = inbound_phone_sup:recording_notification(Records, Path),
                     ok
             end;
         "in-progress" ->

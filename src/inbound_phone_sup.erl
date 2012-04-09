@@ -18,7 +18,7 @@
          start_link/0,
          answer_phone/2,
          call_complete/1,
-         recording_notification/1,
+         recording_notification/2,
          gather_response/1,
          goto_state/2
          %call_in_progress/2
@@ -51,11 +51,11 @@ call_complete(Params) ->
     Pid = get_pid(Call),
     gen_server:call(Pid, {call_complete, Params}).
 
--spec recording_notification(#twilio{}) -> pid() | string().
-recording_notification(Params) ->
+-spec recording_notification(#twilio{}, list()) -> pid() | string().
+recording_notification(Params, Path) ->
     Call = Params#twilio.call_sid,
     Pid = get_pid(Call),
-    gen_server:call(Pid, {recording_notification, Params}).
+    gen_server:call(Pid, {recording_notification, Params, Path}).
 
 -spec gather_response(#twilio{}) -> pid() | string().
 gather_response(Params) ->
