@@ -8,7 +8,7 @@
 -module(twilio_ext).
 
 -export([
-         handle/1,
+         handle/2,
          get_twiml_ext/1
         ]).
 
@@ -25,7 +25,7 @@
 -include("twilio.hrl").
 -include("twilio_web.hrl").
 
-handle(Params) ->
+handle(Params, Path) ->
     log_terms(Params, "twilio.params.log"),
     Records = twilio_web_util:process_proplist(Params),
     case Records#twilio.call_status of
@@ -48,8 +48,14 @@ handle(Params) ->
                     ok
             end;
         "in-progress" ->
-            io:format("response to gather...~n"),
-            inbound_phone_sup:gather_response(Records);
+            case Path of
+                [] ->
+                    io:format("response to gather...~n"),
+                    inbound_phone_sup:gather_response(Records);
+                [State | _] ->
+                    io:format("return to state ~p~n", [State]),
+                    inbound_phone_sup:goto_state(Records, State)
+            end;
         Other ->
             twilio_web_util:pretty_print(Records),
             io:format("Other with ~p~n", [Other]),
@@ -98,18 +104,18 @@ get_twiml2(9) -> SAY1 = #say{text = "My you are looking swish"},
                  SAY2 = #say{text = "What you looking at, fannybaws?"},
                  RESPONSE2 = #response_EXT{title = "Abuse", response = "2",
                                            body = [SAY2]},
-                 [#gather{numDigits = 1, autoMenu_EXT = true,
-                          after_EXT = [RESPONSE1, RESPONSE2]}];
-get_twiml2(10) -> SAY1 = #say{text = "My you are looking swish"},
-                 RESPONSE1 = #response_EXT{title = "Praise", response = "1",
-                                           body = [SAY1]},
-                 SAY2 = #say{text = "What you looking at, fannybaws?"},
-                 RESPONSE2 = #response_EXT{title = "Abuse", response = "2",
-                                           body = [SAY2]},
                  SAYD = #say{text = "can you no use a phone, bawbag?"},
                  DEFAULT = #default_EXT{title = "a slagging", body = [SAYD]},
                  [#gather{numDigits = 1, autoMenu_EXT = true,
-                          after_EXT = [RESPONSE1, RESPONSE2, DEFAULT]}].
+                          after_EXT = [RESPONSE1, RESPONSE2, DEFAULT]}];
+get_twiml2(10) -> SAY1 = #say{text = "My you are looking swish"},
+                  RESPONSE1 = #response_EXT{title = "Praise", response = "1",
+                                            body = [SAY1]},
+                  SAY2 = #say{text = "What you looking at, fannybaws?"},
+                  RESPONSE2 = #response_EXT{title = "Abuse", response = "2",
+                                            body = [SAY2]},
+                  [#gather{numDigits = 1, autoMenu_EXT = true,
+                           after_EXT = [RESPONSE1, RESPONSE2, #repeat_EXT{}]}].
 
 log_terms(Terms, File) ->
     Str = lists:flatten(io_lib:format("~p.~n", [Terms])),
@@ -149,7 +155,7 @@ debug() ->
               {"ApiVersion","2010-04-01"},
               {"Caller","+447776251669"},
               {"CalledCity",[]}],
-    handle(Params).
+    handle(Params, []).
 
 debug2() ->
 
@@ -181,7 +187,7 @@ debug2() ->
               {"ApiVersion","2010-04-01"},
               {"Caller","+447776251669"},
               {"CalledCity",[]}],
-    handle(Params).
+    handle(Params, []).
 
 hangup(CallSID) ->
     Params = [{"AccountSid","AC7a076e30da6d49119b335d3a6de43844"},
@@ -211,7 +217,7 @@ hangup(CallSID) ->
               {"ApiVersion","2010-04-01"},
               {"Caller","+447776251669"},
               {"CalledCity",[]}],
-    handle(Params).
+    handle(Params, []).
 
 recording() ->
     {A, B, C} = now(),
@@ -242,7 +248,7 @@ recording() ->
                {"ApiVersion","2010-04-01"},
                {"Caller","+447776251669"},
                {"CalledCity",[]}],
-    handle(Params1),
+    handle(Params1, []),
 
     Params2 = [{"AccountSid","AC7a076e30da6d49119b335d3a6de43844"},
                {"ToZip",[]},
@@ -274,7 +280,7 @@ recording() ->
                {"Caller","+447776251669"},
                {"CalledCity",[]},
                {"RecordingSid","REf11666b40c423726fcf26f15635373b6"}],
-    handle(Params2).
+    handle(Params2, []).
 
 gather() ->
     {A, B, C} = now(),
@@ -305,7 +311,8 @@ gather() ->
                {"ApiVersion","2010-04-01"},
                {"Caller","+447776251669"},
                {"CalledCity",[]}],
-    handle(Params1),
+    handle(Params1, []),
+
     Params2 = [{"AccountSid","AC7a076e30da6d49119b335d3a6de43844"},
                {"ToZip",[]},
                {"FromState",[]},
@@ -333,4 +340,4 @@ gather() ->
                {"ApiVersion","2010-04-01"},
                {"Caller","+447776251669"},
                {"CalledCity",[]}],
-    handle(Params2).
+    handle(Params2, []).

@@ -110,6 +110,9 @@ handle_call(Request, _From, State) ->
                   {ok, State};
               {gather_response, Rec} ->
                  respond(State, Rec);
+              {goto_state, Rec, Goto} ->
+                  NewState = State#state{currentstate = Goto},
+                  execute(NewState, {"goto " + Goto, now(), Rec});
               {Other, _Rec} ->
                    io:format("Got ~p call in inbound_phone_srv~n", [Other]),
                    {ok, State}
@@ -193,7 +196,7 @@ exec2(next, State, Action, Acc) ->
             {CS, Reply};
         {CS, {xml, X}, wait} ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                                      fun twiml:umbump/1),
+                                      fun twiml:unbump/1),
             NewS = State#state{currentstate = NewCS},
             {_, Default} = get_next_default(NewS, Action, []),
             Reply = lists:reverse([Default, X | Acc]),
@@ -255,7 +258,7 @@ match(State, Action, D, Acc) ->
                      NewS = State#state{currentstate = NewCS},
                      exec2(next, NewS, Action, []);
                _  -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                                      fun twiml:umbump/1),
+                                      fun twiml:unbump/1),
                      NewS = State#state{currentstate = NewCS},
                      match(NewS, Action, D, Acc)
             end
@@ -272,9 +275,11 @@ get_next_default(State, Action, Acc) ->
                              fun twiml:bump/1),
             NewS = State#state{currentstate = NewCS},
             exec2(next, NewS, Action, []);
-        _  ->
+        {CS, #goto_EXT{}, Goto} ->
+            {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"};
+        _Other ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
-                             fun twiml:umbump/1),
+                             fun twiml:unbump/1),
             NewS = State#state{currentstate = NewCS},
             get_next_default(NewS, Action, Acc)
     end.
