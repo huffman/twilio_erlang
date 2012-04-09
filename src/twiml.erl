@@ -26,7 +26,8 @@
          testing3/0,
          testing4/0,
          testing5/0,
-         testing6/0
+         testing6/0,
+         testing7/0
         ]).
 
 -include("twilio.hrl").
@@ -736,17 +737,12 @@ check_bool(Val, Fld, Rec, Acc) ->
 check_int(undefined, _Min, _Fld, _Rec, Acc) ->
     Acc;
 check_int(Val, Min, Fld, Rec, Acc) ->
-    Val2 = if
-               is_integer(Val) -> Val;
-               is_list(Val)    -> list_to_integer(Val)
-           end,
-    if
-        Val2 >= Min ->
-            Acc;
-        true ->
-            [io_lib:format("Invalid ~p in ~p ~p~sn",
-                           [Fld, Rec, Val, "~"]) | Acc]
-    end.
+   if
+       is_integer(Val) andalso Val >= Min ->
+           Acc;
+       true ->
+           [io_lib:format("Invalid ~p in ~p ~p~sn", [Fld, Rec, Val, "~"]) | Acc]
+   end.
 
 is_member(_, [], Acc) ->
     Acc;
@@ -1554,8 +1550,15 @@ testing6() ->
     SAY2 = #say{text="jerken"},
     RESPONSE2 = #response_EXT{title = "jerken", response = "2",
                              body = [SAY2]},
-    GATHER = #gather{numDigits = "1", autoMenu_EXT = true,
+    GATHER = #gather{numDigits = 1, autoMenu_EXT = true,
                      after_EXT = [RESPONSE1, RESPONSE2]},
+    io:format("~p~n", [is_valid([GATHER])]),
+    {_, Ret} = validate([GATHER]),
+    io:format("Ret is ~p~n", [Ret]),
+    compile([GATHER]).
+
+testing7() ->
+    GATHER = #gather{},
     io:format("~p~n", [is_valid([GATHER])]),
     {_, Ret} = validate([GATHER]),
     io:format("Ret is ~p~n", [Ret]),
