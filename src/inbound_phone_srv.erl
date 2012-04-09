@@ -75,6 +75,7 @@ init([Params, TwiML_EXT]) ->
                    true ->
                        twiml:compile(TwiML_EXT)
                end,
+    io:format("FSM is init is ~p~n", [FSM]),
     {ok, #state{twiml_ext = TwiML_EXT, initial_params = Params,
                fsm = FSM, history = [{init, now(), Params}]}}.
 
