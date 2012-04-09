@@ -82,7 +82,7 @@ recipy2(9) ->
     SAY1 = #say{text = "My you are looking swish"},
     RESPONSE1 = #response_EXT{title = "Praise", response = "1", body = [SAY1]},
 
-    SAY2 = #say{text = "What you looking at, fannybaws?", language = "en_gb"},
+    SAY2 = #say{text = "What you looking at, fannybaws?", language = "en-gb"},
     RESPONSE2 = #response_EXT{title = "Abuse", response = "2", body = [SAY2]},
 
     SAYD = #say{text = "can you no use a phone, bawbag?", language = "de"},
