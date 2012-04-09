@@ -11,7 +11,7 @@
 
 -include("twilio.hrl").
 
--define(DEFAULT_PORT, 9999).
+-define(DEFAULT_PORT, 8080).
 
 %% @equiv start(8080)
 start() ->
