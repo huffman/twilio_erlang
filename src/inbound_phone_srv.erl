@@ -108,6 +108,8 @@ handle_call(Request, _From, State) ->
                   io:format("Got details of a recording that has been made. "
                             ++ "You should do something with it mebbies?~n"),
                   {ok, State};
+              {gather_response, Rec} ->
+                 respond(State, Rec);
               {Other, _Rec} ->
                    io:format("Got ~p call in inbound_phone_srv~n", [Other]),
                    {ok, State}
@@ -169,35 +171,47 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 execute(State, Action) ->
-    #state{currentstate = CS, fsm = FSM, history = Hist} = State,
-    io:format("In execute FSM is ~p~nCS is ~p~n", [FSM, CS]),
-    {NewS, Reply} = exec2(next, CS, FSM, []),
+    #state{history = Hist} = State,
+    {NewS, Reply} = exec2(next, State, Action, []),
     {Reply, State#state{currentstate = NewS,
                        history = [Action | Hist]}}.
 
-exec2(wait, CS, _FSM, Acc) ->
+exec2(wait, State, _Action, Acc) ->
+    #state{currentstate = CS} = State,
     Msg = lists:flatten(lists:reverse(Acc)),
     Reply = "<?xml version=\"1.0\"?><Response>"
         ++ Msg ++ "</Response>",
     {CS, Reply};
-exec2(next, CS, FSM, Acc) ->
+exec2(next, State, Action, Acc) ->
+    #state{currentstate = CS, fsm = FSM} = State,
+    io:format("In exec2 FSM is ~p~nCS is ~p~n", [FSM, CS]),
     case lists:keyfind(CS, 1, FSM) of
-        false               -> exit("invalid state in exec2");
+        false ->
+            exit("invalid state in exec2");
         % these are the terminal clauses
-        {CS, {xml, X}, exit}   -> Reply = wrap(lists:reverse([X | Acc])),
-                                  {CS, Reply};
-        {CS, {xml, X}, wait}   -> Reply = wrap(lists:reverse([X | Acc])),
-                                  {CS, Reply};
-        {CS, {xml, X}, next}   -> Next = get_next(CS, FSM, fun twiml:bump/1,
-                                               fun twiml:unbump/1),
-                               exec2(next, Next, FSM, [X | Acc]);
-        {CS, {xml, X}, into}   -> Into = get_next(CS, FSM, fun incr/1,
-                                               fun twiml:decr/1),
-                               exec2(next, Into, FSM, [X | Acc]);
-        {CS, {xml, X}, repeat} -> Into = get_next(CS, FSM, fun twiml:unbump/1,
-                                              fun twiml:decr/1),
-                               exec2(next, Into, FSM, [X | Acc]);
-        {_CS, {xml, _X}, goto}   -> exit("fix me...")
+        {CS, {xml, X}, exit} ->
+            Reply = wrap(lists:reverse([X | Acc])),
+            {CS, Reply};
+        {CS, {xml, X}, wait} ->
+            Reply = wrap(lists:reverse([X | Acc])),
+            {CS, Reply};
+        {CS, {xml, X}, next} ->
+            Next = get_next(CS, FSM, fun twiml:bump/1, fun twiml:unbump/1),
+            NewS = State#state{currentstate = Next},
+            exec2(next, NewS, Action, [X | Acc]);
+        {CS, {xml, X}, into} ->
+            Into = get_next(CS, FSM, fun incr/1, fun twiml:decr/1),
+            NewS = State#state{currentstate = Into},
+            exec2(next, NewS, Action, [X | Acc]);
+        {CS, {xml, X}, repeat} ->
+            Into = get_next(CS, FSM, fun twiml:unbump/1, fun twiml:decr/1),
+            NewS = State#state{currentstate = Into},
+            exec2(next, NewS, Action, [X | Acc]);
+        {CS, #response_EXT{}, into} ->
+            InProg = Action#twilio.inprogress,
+            #twilio_inprogress{digits = D} = InProg,
+            match(State, Action, D, Acc);
+        {_CS, #goto_EXT{}, _Goto}  -> exit("fix me...")
     end.
 
 get_next(CS, FSM, Fun1, Fun2) ->
@@ -218,3 +232,32 @@ incr(CS) -> twiml:bump(twiml:incr(CS)).
 
 wrap(List) -> lists:flatten(lists:append(["<?xml version=\"1.0\"?><Response>",
                                           List, "</Response>"])).
+
+respond(State, Rec) ->
+    #state{currentstate = CS, fsm = FSM, history = _Hist} = State,
+    case lists:keyfind(CS, 1, FSM) of
+        false         -> exit("invalid state in respond");
+        {CS, _, wait} -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
+                                          fun twiml:unbump/1),
+                         NewS = State#state{currentstate = NewCS},
+                         execute(NewS, Rec)
+    end.
+
+match(State, Action, D, Acc) ->
+    #state{currentstate = CS, fsm = FSM} = State,
+    case lists:keyfind(CS, 1, FSM) of
+        false ->
+            exit("invalid state in match");
+        {CS, #response_EXT{response = R} = _Resp, _} ->
+            io:format("D is ~p R is ~p~n", [D, R]),
+            case D of
+                R -> NewCS = get_next(CS, FSM, fun incr/1,
+                                      fun twiml:decr/1),
+                     NewS = State#state{currentstate = NewCS},
+                     exec2(next, NewS, Action, []);
+               _  -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
+                                      fun twiml:umbump/1),
+                     NewS = State#state{currentstate = NewCS},
+                     match(NewS, Action, D, Acc)
+            end
+    end.
