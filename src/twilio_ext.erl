@@ -34,7 +34,7 @@ handle(Params, Path) ->
             {A, B, C} = now(),
             random:seed(A, B, C),
             _N = random:uniform(10),
-            TwiML_EXT = twilio_ext:get_twiml_ext(10),
+            TwiML_EXT = twilio_ext:get_twiml_ext(11),
             inbound_phone_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
             case Records#twilio.recording of
@@ -106,6 +106,7 @@ get_twiml2(7) -> [#say{text="welcome to a simple conference call. "
                                             conference = "bingo master"}]}];
 get_twiml2(8) -> [#say{text = "leave a message after the tone"},
                   #record{playBeep = true, maxLength = 60}];
+% GATHER with a default action
 get_twiml2(9) -> SAY1 = #say{text = "My you are looking swish"},
                  RESPONSE1 = #response_EXT{title = "Praise", response = "1",
                                            body = [SAY1]},
@@ -116,6 +117,7 @@ get_twiml2(9) -> SAY1 = #say{text = "My you are looking swish"},
                  DEFAULT = #default_EXT{title = "a slagging", body = [SAYD]},
                  [#gather{numDigits = 1, autoMenu_EXT = true,
                           after_EXT = [RESPONSE1, RESPONSE2, DEFAULT]}];
+% GATHER with repeat on do nothing
 get_twiml2(10) -> SAY1 = #say{text = "My you are looking swish"},
                   RESPONSE1 = #response_EXT{title = "Praise", response = "1",
                                             body = [SAY1]},
@@ -123,7 +125,16 @@ get_twiml2(10) -> SAY1 = #say{text = "My you are looking swish"},
                   RESPONSE2 = #response_EXT{title = "Abuse", response = "2",
                                             body = [SAY2]},
                   [#gather{numDigits = 1, autoMenu_EXT = true,
-                           after_EXT = [RESPONSE1, RESPONSE2, #repeat_EXT{}]}].
+                           after_EXT = [RESPONSE1, RESPONSE2, #repeat_EXT{}]}];
+% GATHER with automatic repeat on do nothing
+get_twiml2(11) -> SAY1 = #say{text = "My you are looking swish"},
+                  RESPONSE1 = #response_EXT{title = "Praise", response = "1",
+                                            body = [SAY1]},
+                  SAY2 = #say{text = "What you looking at, fannybaws?"},
+                  RESPONSE2 = #response_EXT{title = "Abuse", response = "2",
+                                            body = [SAY2]},
+                  [#gather{numDigits = 1, autoMenu_EXT = true,
+                           after_EXT = [RESPONSE1, RESPONSE2]}].
 
 log_terms(Terms, File) ->
     Str = lists:flatten(io_lib:format("~p.~n", [Terms])),
