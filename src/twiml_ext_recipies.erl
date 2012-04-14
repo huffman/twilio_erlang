@@ -15,7 +15,8 @@
 -export([
          recipe/1,
          random/0,
-         external_function/1
+         external_function/1,
+         external_callback/2
         ]).
 
 random() ->
@@ -127,15 +128,19 @@ recipy2(12) ->
 
 % the function that is called gets the whole phonecall_srv state
 %
-% a function that is called must return 3 parameters
+% a function that is called must return 2 parameters
 % the 1st if a list of valid extended TwiML records
-% the 2nd is a list of Fns of arity 1 to be executed when any
-% recording notification messages come in
-% the 3rd is a list of Fns of arity 1 to be executed when the
-% master call complete notification message comes in
-% the will be passed the appropriate #twilio{} record in
-% the paramater
-%
-% most of the time just return two empty lists
+% the 2nd is a list of event callbacks. These take the form
+% {type(), fun Fun/1} where type() -> notification | complete
+% Other types which will be added later will be
+% 'transcribe' and  'partcomplete'
+% The funs in the event call have an arity of 2. The two arguments are
+% the record which triggers the callback and the state of the phonecall
+% They return ok.
 external_function(_State) ->
-    {random(), [], []}.
+    {random(), [{complete, fun twiml_ext_recipies:external_callback/2}]}.
+
+external_callback(_Rec, _State) ->
+    % twilio_web_util:pretty_print(Rec),
+    io:format("Callback called...~n"),
+    ok.

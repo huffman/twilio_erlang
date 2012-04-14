@@ -31,8 +31,7 @@
 -include("twilio_web.hrl").
 
 -record(state, {twiml_ext = null, initial_params = null, fsm = null,
-               currentstate = "1", history = [], rec_notify_fns = [],
-               complete_notify_fns = []}).
+               currentstate = "1", history = [], eventcallbacks = []}).
 
 %%%===================================================================
 %%% API
@@ -100,7 +99,9 @@ handle_call(Request, _From, State) ->
                   % we do nothing, but you might want to squirrell away the
                   % duration for bill purposes
                   % apply the complete notification fns
-                  [Fun(Rec) || Fun <- State#state.complete_notify_fns],
+                  [Fun(Rec, State) || {Event, Fun}
+                                          <- State#state.eventcallbacks,
+                                      Event == complete],
                   spawn(timer, apply_after, [1000, phonecall_srv,
                                              delete_self,
                                              [Rec#twilio.call_sid]]),
@@ -111,7 +112,9 @@ handle_call(Request, _From, State) ->
                   io:format("Got details of a recording that has been made. "
                             ++ "You should do something with it mebbies?~n"),
                   % apply the complete notification fns
-                  [Fun(Rec) || Fun <- State#state.rec_notify_fns],
+                  [Fun(Rec, State) || {Event, Fun}
+                                          <- State#state.eventcallbacks,
+                                      Event == notification],
                   {ok, State};
               {gather_response, Rec} ->
                  respond(State, Rec);
@@ -293,18 +296,16 @@ get_next_default(State, Action, Acc) ->
 
 apply_function(Module, Function, State) ->
     #state{currentstate = CS, fsm = FSM, history = History,
-          rec_notify_fns = RNFn, complete_notify_fns = CNFn} = State,
+          eventcallbacks = CBs} = State,
     NewHist = [{"calling " ++ to_list(Module) ++ ":" ++ to_list(Function)
                 ++ "/3"} | History],
-    {NewTwiML, RecFn, CompFn} = apply(to_atom(Module), to_atom(Function), [State]),
+    {NewTwiML, CBs2} = apply(to_atom(Module), to_atom(Function), [State]),
     NewCState = twiml:compile(NewTwiML, CS, fsm),
-    NewFSM1 = orddict:erase(CS, FSM),
-    NewFSM2 = store(NewCState, NewFSM1),
-    NewRNFn = lists:merge(RecFn, RNFn),
-    NewCNFn = lists:merge(CompFn, CNFn),
-    NewState = State#state{fsm = NewFSM2, history = NewHist,
-                           rec_notify_fns = NewRNFn,
-                           complete_notify_fns = NewCNFn},
+    NewFSM1   = orddict:erase(CS, FSM),
+    NewFSM2   = store(NewCState, NewFSM1),
+    NewCBs    = lists:merge(CBs, CBs2),
+    NewState  = State#state{fsm = NewFSM2, history = NewHist,
+                           eventcallbacks = NewCBs},
     NewState.
 
 store([], Orddict)           -> Orddict;
