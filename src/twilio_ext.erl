@@ -26,14 +26,14 @@ handle(Params, Path) ->
         "ringing" ->
             io:format("phone ringing...~n"),
             TwiML_EXT = twiml_EXT_recipies:random(),
-            inbound_phone_sup:answer_phone(Records, TwiML_EXT);
+            phonecall_sup:answer_phone(Records, TwiML_EXT);
         "completed" ->
             case Records#twilio.recording of
                 null ->
                     case Path of
                         [] ->
                             io:format("call completed...~n"),
-                            ok = inbound_phone_sup:call_complete(Records),
+                            ok = phonecall_sup:call_complete(Records),
                             ok;
                         Sub ->
                             io:format("goto ~p segment of call completed...~n",
@@ -43,17 +43,17 @@ handle(Params, Path) ->
                     end;
                 _ ->
                     io:format("notification of recording...~n"),
-                    ok = inbound_phone_sup:recording_notification(Records, Path),
+                    ok = phonecall_sup:recording_notification(Records, Path),
                     ok
             end;
         "in-progress" ->
             case Path of
                 [] ->
                     io:format("response to gather...~n"),
-                    inbound_phone_sup:gather_response(Records);
+                    phonecall_sup:gather_response(Records);
                 [State | _] ->
                     io:format("return to state ~p~n", [State]),
-                    inbound_phone_sup:goto_state(Records, State)
+                    phonecall_sup:goto_state(Records, State)
             end;
         Other ->
             twilio_web_util:pretty_print(Records),

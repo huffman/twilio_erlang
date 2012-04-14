@@ -222,7 +222,7 @@ It compiles to the following state machine:
  {"2",{{xml,"<Hangup/>"},exit}}]
 ```
 
-Which executes in a finite state machine inside ``inbound_phone_srv.erl``
+Which executes in a finite state machine inside ``phonecall_srv.erl``
 
 This example is not so interesting. Recipe 9 is more interesting:
 
@@ -296,7 +296,7 @@ This compiles to ascii as:
 2 - HANGUP
 ```
 
-At run time this calls the function ``twiml_EXT_recipies:external_function/1`` passing in the ``#state{}`` record from ``inbound_phone_srv.erl``
+At run time this calls the function ``twiml_EXT_recipies:external_function/1`` passing in the ``#state{}`` record from ``phonecall_srv.erl``
 
 The signature of the external function is very straightforward:
 
@@ -312,7 +312,7 @@ This is compiled and inserted into the Finite State Machine replacing the call-o
 The two other parameters to be returned are lists of functions of arity/1 to be executed on two events on the call:
 
 * notification of a recording of part of the call
-* notification that the master call complete record has been received and the inbound_phone supervisor is about to delete the child that is handling the call.
+* notification that the master call complete record has been received and the phonecall supervisor is about to delete the child that is handling the call.
 
 Extended TwiML Usage
 ====================

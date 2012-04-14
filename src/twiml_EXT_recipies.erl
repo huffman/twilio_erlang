@@ -125,7 +125,7 @@ recipy2(12) ->
     [#function_EXT{title = "call out to function", module = 'twiml_EXT_recipies',
                    fn = 'external_function'}].
 
-% the function that is called gets the whole inbound_phone_srv state
+% the function that is called gets the whole phonecall_srv state
 %
 % a function that is called must return 3 parameters
 % the 1st if a list of valid extended TwiML records

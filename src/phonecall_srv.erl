@@ -7,7 +7,7 @@
 %%% @end
 %%% Created :  6 Apr 2012 by <gordon@hypernumbers.com>
 %%%-------------------------------------------------------------------
--module(inbound_phone_srv).
+-module(phonecall_srv).
 
 -behaviour(gen_server).
 
@@ -38,8 +38,8 @@
 %%% API
 %%%===================================================================
 delete_self(CallSID) ->
-    ok = supervisor:terminate_child(inbound_phone_sup, CallSID),
-    ok = supervisor:delete_child(inbound_phone_sup, CallSID),
+    ok = supervisor:terminate_child(phonecall_sup, CallSID),
+    ok = supervisor:delete_child(phonecall_sup, CallSID),
     ok.
 
 %%--------------------------------------------------------------------
@@ -101,7 +101,7 @@ handle_call(Request, _From, State) ->
                   % duration for bill purposes
                   % apply the complete notification fns
                   [Fun(Rec) || Fun <- State#state.complete_notify_fns],
-                  spawn(timer, apply_after, [1000, inbound_phone_srv,
+                  spawn(timer, apply_after, [1000, phonecall_srv,
                                              delete_self,
                                              [Rec#twilio.call_sid]]),
                   {ok, State};
@@ -119,7 +119,7 @@ handle_call(Request, _From, State) ->
                   NewState = State#state{currentstate = Goto},
                   execute(NewState, {"goto " ++ Goto, now(), Rec});
               {Other, _Rec} ->
-                   io:format("Got ~p call in inbound_phone_srv~n", [Other]),
+                   io:format("Got ~p call in phonecall_srv~n", [Other]),
                    {ok, State}
            end,
     {reply, Reply, NewS}.
