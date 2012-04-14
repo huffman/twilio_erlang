@@ -200,7 +200,7 @@ The problems that Extended TwiML is solving are:
 * you are responsible for making sure that the IVR system you build is well-behaved from a user's perspective
   * Extended TwiML does this at compile time
 * it is hard to reason about what a TwiML-based system is doing without poring over the code
-  * Extended TwiML compiles not only to an executable Finite State Machine but aslo an ascii or html representation of it that makes understanding what is goind on a cinch
+  * Extended TwiML compiles not only to an executable Finite State Machine but aslo an ascii or html representation of it that makes understanding what is going on a cinch
 
 This is a piece of extended TwiML from the file recipe 1 in ``twiml_ext_recipies.erl``:
 
