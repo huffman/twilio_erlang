@@ -301,7 +301,7 @@ apply_function(Module, Function, State) ->
     NewHist = [{"calling " ++ to_list(Module) ++ ":" ++ to_list(Function)
                 ++ "/3"} | History],
     {NewTwiML, CBs2} = apply(to_atom(Module), to_atom(Function), [State]),
-    NewCState = twiml:compile(NewTwiML, CS, fsm),
+    NewCState = twiml:compile(NewTwiML, fsm, CS),
     NewFSM1   = orddict:erase(CS, FSM),
     NewFSM2   = store(NewCState, NewFSM1),
     NewCBs    = lists:merge(CBs, CBs2),
