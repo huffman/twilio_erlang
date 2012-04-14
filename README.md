@@ -189,8 +189,8 @@ Extended TwiML has a number of additions made to it:
 The problems that Extended TwiML is solving are:
 
 * it is a pain to set up IVR in tradtional Twilio because you have to
-  faff around with a compile-time state machine
-  * Extended TwiML lets you build a run-time state machine by managing the responses for you
+  faff around with a **compile-time** state machine
+  * Extended TwiML lets you build a **run-time** state machine by managing the responses for you
 * speaking to Twilio is easy with TwiML - speaking to Erlang is off-topic
   * Extended TwiML makes it trivial to call out to Erlang
 * there is the whole palaver with Twilio making multiple posts to you some of them containing notification that recordings have been made, some that calls are finished
