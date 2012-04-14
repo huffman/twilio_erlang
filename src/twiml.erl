@@ -189,7 +189,11 @@ comp3([#gather{} = G | _T], _ExitType, _Type, Fun, Rank, Acc) ->
                                      Fun, NewRank, []),
     {_, _NewRank2,  Menu} = make_menu(Resp, Def, G#gather.autoMenu_EXT,
                                      Fun, NewRank1),
-    NewRank3 = bump(NewRank),
+    % if there is no auto menu then you don't want to bump the state
+    NewRank3 = case Menu of
+                   [] -> NewRank;
+                   _  -> bump(NewRank)
+               end,
     CloseGather = Fun("Gather", NewRank3),
     NewRank4 = bump(NewRank3),
     % no hangup on response - they get a hangup internally
