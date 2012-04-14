@@ -259,7 +259,7 @@ The ascii compilation of this is:
         1.5.2 - HANGUP
 ```
 
-Notice that by setting the option ``autoMenu_EXT`` to ``true`` and auto-menu is generated from the responses you have specified.
+Notice that by setting the option ``autoMenu_EXT`` to ``true`` an auto-menu is generated from the responses you have specified.
 
 and the FSM version is:
 
@@ -302,17 +302,21 @@ The signature of the external function is very straightforward:
 
 ```erlang
 external_function(_State) ->
-    {random(), [], []}.
+    {random(), [], {Type, Fun/2}.
 ```
 
-It takes a single parameter and it returns a three part tuple, the most important part is the first element - some valid Extended TwiML.
+where Type is one of the following atoms:
+
+```erlang
+recording
+completion
+```
+
+It takes a single parameter and it returns a two part tuple, the most important part is the first element - some valid Extended TwiML.
 
 This is compiled and inserted into the Finite State Machine replacing the call-out entry. The FSM is then revaluated.
 
-The two other parameters to be returned are lists of functions of arity/1 to be executed on two events on the call:
-
-* notification of a recording of part of the call
-* notification that the master call complete record has been received and the phonecall supervisor is about to delete the child that is handling the call.
+The other parameter to be returned is a list of tuples that subscribe functions to callback events. The first paramater is the event that is being subscribed to, the second is a function of arity 2 to be called when the event happens.
 
 Extended TwiML Usage
 ====================

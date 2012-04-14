@@ -98,10 +98,10 @@ handle_call(Request, _From, State) ->
                {call_complete, Rec} ->
                   % we do nothing, but you might want to squirrell away the
                   % duration for bill purposes
-                  % apply the complete notification fns
+                  % apply the completion callback fns
                   [Fun(Rec, State) || {Event, Fun}
                                           <- State#state.eventcallbacks,
-                                      Event == complete],
+                                      Event == completion],
                   spawn(timer, apply_after, [1000, phonecall_srv,
                                              delete_self,
                                              [Rec#twilio.call_sid]]),
@@ -111,10 +111,10 @@ handle_call(Request, _From, State) ->
               {recording_notification, Rec, _Path} ->
                   io:format("Got details of a recording that has been made. "
                             ++ "You should do something with it mebbies?~n"),
-                  % apply the complete notification fns
+                  % apply the recording callback fns
                   [Fun(Rec, State) || {Event, Fun}
                                           <- State#state.eventcallbacks,
-                                      Event == notification],
+                                      Event == recording],
                   {ok, State};
               {gather_response, Rec} ->
                  respond(State, Rec);
