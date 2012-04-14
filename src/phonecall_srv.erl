@@ -284,7 +284,8 @@ get_next_default(State, Action, Acc) ->
             NewCS = get_next(CS, FSM, fun twiml:incr/1,
                              fun twiml:bump/1),
             NewS = State#state{currentstate = NewCS},
-            exec2(next, NewS, Action, []);
+            {NewCS2, _NewState2, Msg} = exec2(next, NewS, Action, []),
+            {NewCS2, Msg};
         {ok, {#goto_EXT{}, Goto}} ->
             {Goto, "<Redirect>/" ++ Goto ++ "</Redirect>"};
         _Other ->
