@@ -1,0 +1,11 @@
+{application,twilio,
+             [{description,[]},
+              {vsn,"1e97d06"},
+              {registered,[]},
+              {applications,[kernel,stdlib]},
+              {mod,{twilio_app,[]}},
+              {env,[]},
+              {modules,[jsonjwt,phonecall_srv,phonecall_sup,twilio,twilio_app,
+                        twilio_capabilities,twilio_ext,twilio_sup,twilio_web,
+                        twilio_web_util,twiml,twiml_EXT_recipies,
+                        twiml_ext_recipies]}]}.

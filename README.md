@@ -202,7 +202,7 @@ The problems that Extended TwiML is solving are:
 * it is hard to reason about what a TwiML-based system is doing without poring over the code
   * Extended TwiML compiles not only to an executable Finite State Machine but aslo an ascii or html representation of it that makes understanding what is goind on a cinch
 
-This is a piece of extended TwiML from the file recipe 1 in ``twiml_EXT_recipies.erl``:
+This is a piece of extended TwiML from the file recipe 1 in ``twiml_ext_recipies.erl``:
 
 ```erlang
     [#say{text = "yowza"}];
@@ -285,18 +285,18 @@ and the FSM version is:
 The part that makes it super-interesting is the ability to call out to Erlang fuctions natively. Recipe 12 gives the simplest version of this:
 
 ```Erlang
-    [#function_EXT{title = "call out to function", module = 'twiml_EXT_recipies',
+    [#function_EXT{title = "call out to function", module = 'twiml_ext_recipies',
                    fn = 'external_function'}]
 ```
 
 This compiles to ascii as:
 
 ```
-1 - Call out to CALL OUT TO FUNCTION (twiml_EXT_recipies:external_function)
+1 - Call out to CALL OUT TO FUNCTION (twiml_ext_recipies:external_function)
 2 - HANGUP
 ```
 
-At run time this calls the function ``twiml_EXT_recipies:external_function/1`` passing in the ``#state{}`` record from ``phonecall_srv.erl``
+At run time this calls the function ``twiml_ext_recipies:external_function/1`` passing in the ``#state{}`` record from ``phonecall_srv.erl``
 
 The signature of the external function is very straightforward:
 

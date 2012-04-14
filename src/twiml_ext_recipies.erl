@@ -5,7 +5,7 @@
 %%% @end
 %%% Created :  9 Apr 2012 by gordon <gordon@gordon.dev>
 
--module(twiml_EXT_recipies).
+-module(twiml_ext_recipies).
 
 -define(MYPHONE, "+447776301539").
 
@@ -122,7 +122,7 @@ recipy2(11) ->
 
 % call out to a function
 recipy2(12) ->
-    [#function_EXT{title = "call out to function", module = 'twiml_EXT_recipies',
+    [#function_EXT{title = "call out to function", module = 'twiml_ext_recipies',
                    fn = 'external_function'}].
 
 % the function that is called gets the whole phonecall_srv state
