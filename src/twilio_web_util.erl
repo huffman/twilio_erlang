@@ -14,12 +14,15 @@
          country_code_to_country/1,
          prefix_to_country/1,
          prefix_to_country_code/1,
-         pretty_print/1
+         pretty_print/1,
+         add_prefix/2
         ]).
 
 -include("twilio_web.hrl").
 
 -define(UQ, mochiweb_util:unquote).
+
+add_prefix("0" ++ Number, Prefix) -> Prefix ++ Number.
 
 country_code_to_prefix(CC) ->
     CC2 = string:to_upper(CC),
