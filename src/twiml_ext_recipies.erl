@@ -26,7 +26,7 @@ random() ->
     recipe(N).
 
 recipe(N) ->
-    TwiML = recipy2(N),
+    TwiML = recipe2(N),
     case twiml:is_valid(TwiML) of
         false -> io:format("Invalid TwiML ~p~n", [TwiML]),
                  exit("invalid TwiML");
@@ -34,36 +34,36 @@ recipe(N) ->
     end.
 
 % say something
-recipy2(1) ->
+recipe2(1) ->
     [#say{text = "yowza"}];
 
 % say a couple of things and change the voice
-recipy2(2) ->
+recipe2(2) ->
     [#say{text = "bonza, dogface", language = "fr", voice = "woman"},
      #say{text = "now piss aff!"}];
 
 % send an SMS message
-recipy2(3) ->
+recipe2(3) ->
     [#say{text = "gonnae send someone an SMS"},
      #sms{text = "howdy", to = ?MYPHONE, from = ?PhoneNo}];
 
 % pregnant pause
-recipy2(4) ->
+recipe2(4) ->
     [#say{text = "hot diggity", language = "de", voice = "woman"},
      #pause{length = 10}, #say{text = "lover boy!", voice= "woman"}];
 
 % play a file
-recipy2(5) ->
+recipe2(5) ->
     [#play{url = "http://files.hypernumbers.com/music/"
            ++ "RockyMountainMedleyPart1.mp3"}];
 
 % forward a call
-recipy2(6) ->
+recipe2(6) ->
     [#say{text = "forwarding to someone"},
      #dial{body = [#number{number = ?MYPHONE}]}];
 
 % primitive conference call
-recipy2(7) ->
+recipe2(7) ->
     [#say{text="welcome to a simple conference call. "
           ++ "Have someone else call this number"},
      #dial{body = [#conference{muted = false, beep = true,
@@ -72,12 +72,12 @@ recipy2(7) ->
                                conference = "bingo master"}]}];
 
 % primite answerphone
-recipy2(8) ->
+recipe2(8) ->
     [#say{text = "leave a message after the tone"},
      #record{playBeep = true, maxLength = 60}];
 
 % IVR that repeats by default
-recipy2(9) ->
+recipe2(9) ->
     % get yer bits sorted out
     SAY1 = #say{text = "My you are looking swish"},
     RESPONSE1 = #response_EXT{title = "Praise", response = "1", body = [SAY1]},
@@ -93,7 +93,7 @@ recipy2(9) ->
                                                               RESPONSE2,
                                                               DEFAULT]}];
 % IVR with a repeat
-recipy2(10) ->
+recipe2(10) ->
     % get yer bits sorted out
     SAY1 = #say{text = "My you are looking swish"},
     RESPONSE1 = #response_EXT{title = "Praise", response = "1", body = [SAY1]},
@@ -107,7 +107,7 @@ recipy2(10) ->
                                                               #repeat_EXT{}]}];
 
 % IVR with an explicit repeat
-recipy2(11) ->
+recipe2(11) ->
     % get yer bits sorted out
     SAY1 = #say{text = "My you are looking swish"},
     RESPONSE1 = #response_EXT{title = "Praise", response = "1",
@@ -122,7 +122,7 @@ recipy2(11) ->
                                                               RESPONSE2]}];
 
 % call out to a function
-recipy2(12) ->
+recipe2(12) ->
     [#function_EXT{title = "call out to function", module = 'twiml_ext_recipies',
                    fn = 'external_function'}].
 
