@@ -152,10 +152,12 @@ remove_undefined(Attrs) ->
     [Attr || {_, Value} = Attr <- Attrs, Value =/= undefined].
 
 compile(Elements) when is_list(Elements) ->
-    compile(Elements, fsm, "1").
+    {_, Return} = compile(Elements, fsm, "1"),
+    Return.
 
 compile(Elements, Type) when is_list(Elements) ->
-    compile(Elements, Type, "1").
+    {_, Return} = compile(Elements, Type, "1"),
+    Return.
 
 compile(Elements, html, Rank) when is_list(Elements) ->
     comp2(Elements, Rank, fun print_html/2);
@@ -165,9 +167,9 @@ compile(Elements, fsm, Rank) when is_list(Elements) ->
     comp2(Elements, Rank, fun make_fsm/2).
 
 comp2(Elements, Rank, Fun) ->
-    {_NewType,  _NewRank,  Output} = comp3(Elements, hangup,
+    {_NewType,  NewRank,  Output} = comp3(Elements, hangup,
                                            'no-state', Fun, Rank, []),
-    Output.
+    {NewRank, Output}.
 
 % these records are terminals as well
 % nothing can happen after them, so chuck the tail away

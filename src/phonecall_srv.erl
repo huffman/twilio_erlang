@@ -301,11 +301,12 @@ apply_function(Module, Function, State) ->
     NewHist = [{"calling " ++ to_list(Module) ++ ":" ++ to_list(Function)
                 ++ "/3"} | History],
     {NewTwiML, CBs2} = apply(to_atom(Module), to_atom(Function), [State]),
-    NewCState = twiml:compile(NewTwiML, fsm, CS),
-    NewFSM1   = orddict:erase(CS, FSM),
-    NewFSM2   = store(NewCState, NewFSM1),
+    {BumpedState, NewCState} = twiml:compile(NewTwiML, fsm, CS),
+    NewFSM1  = orddict:erase(CS, FSM),
+    NewFSM2  = shift(NewFSM1, CS, BumpedState, []),
+    NewFSM3   = store(NewCState, NewFSM2),
     NewCBs    = lists:merge(CBs, CBs2),
-    NewState  = State#state{fsm = NewFSM2, history = NewHist,
+    NewState  = State#state{fsm = NewFSM3, history = NewHist,
                            eventcallbacks = NewCBs},
     NewState.
 
@@ -318,3 +319,39 @@ to_atom(X) when is_list(X) -> list_to_existing_atom(X).
 
 to_list(X) when is_list(X) -> X;
 to_list(X) when is_atom(X) -> atom_to_list(X).
+
+shift([], _, _, Acc) -> lists:reverse(Acc);
+shift([{State, Rec} | T], CurrentState, BumpedState, Acc) ->
+    NewState = shift2(State, CurrentState, BumpedState),
+    NewAcc = [{NewState, Rec} | Acc],
+    shift(T, CurrentState, BumpedState, NewAcc).
+
+shift2(State, CurrentState, BumpedState) ->
+    if
+        State >  CurrentState -> bump(State, CurrentState, BumpedState);
+        State =< CurrentState -> State
+    end.
+
+bump(State, CurrentState, BumpedState) ->
+    Diff = diff(CurrentState, BumpedState),
+    NState = state_to_num(State),
+    LenD = length(Diff),
+    LenNS = length(NState),
+    case LenD of
+        LenNS -> bump2(NState, Diff, []);
+        _     -> State
+    end.
+
+bump2([], [], Acc) ->
+    Cca = lists:reverse(Acc),
+    string:join([integer_to_list(X) || X <- Cca], ".");
+bump2([H1 | T1], [H2 | T2], Acc) ->
+    bump2(T1, T2, [H1 + H2 | Acc]).
+
+diff(A, B) -> [A2 | A3]  = lists:reverse(state_to_num(A)),
+              [B2 | _B3] = lists:reverse(state_to_num(B)),
+              Len = length(A3),
+              lists:reverse([B2 - A2 | lists:duplicate(Len, 0)]).
+
+state_to_num(A) -> [list_to_integer(X) || X <- string:tokens(A, ".")].
+

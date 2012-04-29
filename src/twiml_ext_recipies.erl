@@ -22,13 +22,15 @@
 random() ->
     {A, B, C} = now(),
     random:seed(A, B, C),
-    N = random:uniform(12),
+    N = random:uniform(14),
     recipe(N).
 
 recipe(N) ->
     TwiML = recipe2(N),
     case twiml:is_valid(TwiML) of
         false -> io:format("Invalid TwiML ~p~n", [TwiML]),
+                 {error, Msg} = twiml:validate(TwiML),
+                 io:format(Msg),
                  exit("invalid TwiML");
         true -> TwiML
     end.
@@ -71,7 +73,7 @@ recipe2(7) ->
                                endConferenceOnExit = true,
                                conference = "bingo master"}]}];
 
-% primite answerphone
+% primitive answerphone
 recipe2(8) ->
     [#say{text = "leave a message after the tone"},
      #record{playBeep = true, maxLength = 60}];
@@ -123,8 +125,28 @@ recipe2(11) ->
 
 % call out to a function
 recipe2(12) ->
-    [#function_EXT{title = "call out to function", module = 'twiml_ext_recipies',
-                   fn = 'external_function'}].
+    [#function_EXT{title = "call out to function",
+                   module = 'twiml_ext_recipies',
+                   fn = 'external_function'}];
+
+% add a call out into a list of things
+recipe2(13) ->
+    [#say{text = "gonnae send someone an SMS"},
+     #function_EXT{title = "call out to function",
+                   module = 'twiml_ext_recipies',
+                   fn = 'external_function'},
+     #sms{text = "howdy", to = ?MYPHONE, from = ?MYPHONE}];
+
+% add a call out which is on a sub-menu
+recipe2(14) ->
+    % get yer bits sorted out
+    EXT = #function_EXT{title = "call out to function",
+                            module = 'twiml_ext_recipies',
+                            fn = 'external_function'},
+
+    [#say{text="welcome to a simple conference call. "
+          ++ "Have someone else call this number"},
+     #dial{body = [EXT]}].
 
 % the function that is called gets the whole phonecall_srv state
 %
@@ -138,7 +160,10 @@ recipe2(12) ->
 % the record which triggers the callback and the state of the phonecall
 % They return ok.
 external_function(_State) ->
-    {random(), [{complete, fun twiml_ext_recipies:external_callback/2}]}.
+    TwiML = [#say{text = "shag off"},
+             #pause{length = 5},
+             #say{text = "ratboy"}],
+    {TwiML, [{complete, fun twiml_ext_recipies:external_callback/2}]}.
 
 external_callback(_Rec, _State) ->
     % twilio_web_util:pretty_print(Rec),
