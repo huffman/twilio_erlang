@@ -176,8 +176,7 @@ comp2(Elements, Rank, Fun) ->
 % and terminate here
 comp3([H | _T], _ExitType, Type, Fun, Rank, Acc)
   when is_record(H, hangup)
-       orelse is_record(H, reject)
-       orelse is_record(H, goto_EXT) ->
+       orelse is_record(H, reject) ->
     Rank2 = bump(Rank),
     {Type, Rank2, lists:flatten(lists:reverse([Fun(H, Rank) | Acc]))};
 % gather is also a terminal- our gathers always have a default or a repeat
@@ -228,7 +227,8 @@ comp3([H | T], ExitType, Type, Fun, Rank, Acc)
        orelse is_record(H, number)
        orelse is_record(H, client)
        orelse is_record(H, conference)
-       orelse is_record(H, function_EXT) ->
+       orelse is_record(H, function_EXT)
+       orelse is_record(H, goto_EXT) ->
     Rank2 = bump(Rank),
     comp3(T, ExitType, Type, Fun, Rank2, [Fun(H, Rank) | Acc]);
 comp3([#dial{} = D | T], ExitType, _Type, Fun, Rank, Acc) ->

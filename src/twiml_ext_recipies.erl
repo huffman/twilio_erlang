@@ -22,7 +22,7 @@
 random() ->
     {A, B, C} = now(),
     random:seed(A, B, C),
-    N = random:uniform(14),
+    N = random:uniform(15),
     recipe(N).
 
 recipe(N) ->
@@ -139,14 +139,23 @@ recipe2(13) ->
 
 % add a call out which is on a sub-menu
 recipe2(14) ->
-    % get yer bits sorted out
     EXT = #function_EXT{title = "call out to function",
                             module = 'twiml_ext_recipies',
                             fn = 'external_function'},
 
     [#say{text="welcome to a simple conference call. "
           ++ "Have someone else call this number"},
-     #dial{body = [EXT]}].
+     #dial{body = [EXT]}];
+
+% add a call out which is on a sub-menu
+recipe2(15) ->
+    SAY = #say{text="Smoot"},
+    EXT = #function_EXT{title = "call out to function",
+                        module = 'twiml_ext_recipies',
+                        fn = 'external_function'},
+    GOTO = #goto_EXT{goto = "4"},
+    SAY2 = #say{text="Backflip"},
+    [SAY, EXT, GOTO, SAY2].
 
 % the function that is called gets the whole phonecall_srv state
 %

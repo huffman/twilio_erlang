@@ -304,9 +304,9 @@ apply_function(Module, Function, State) ->
     {BumpedState, NewCState} = twiml:compile(NewTwiML, fsm, CS),
     NewFSM1  = orddict:erase(CS, FSM),
     NewFSM2  = shift(NewFSM1, CS, BumpedState, []),
-    NewFSM3   = store(NewCState, NewFSM2),
-    NewCBs    = lists:merge(CBs, CBs2),
-    NewState  = State#state{fsm = NewFSM3, history = NewHist,
+    NewFSM3  = store(NewCState, NewFSM2),
+    NewCBs   = lists:merge(CBs, CBs2),
+    NewState = State#state{fsm = NewFSM3, history = NewHist,
                            eventcallbacks = NewCBs},
     NewState.
 
@@ -323,7 +323,8 @@ to_list(X) when is_atom(X) -> atom_to_list(X).
 shift([], _, _, Acc) -> lists:reverse(Acc);
 shift([{State, Rec} | T], CurrentState, BumpedState, Acc) ->
     NewState = shift2(State, CurrentState, BumpedState),
-    NewAcc = [{NewState, Rec} | Acc],
+    Rec2 = shift_rec(Rec, CurrentState, BumpedState),
+    NewAcc = [{NewState, Rec2} | Acc],
     shift(T, CurrentState, BumpedState, NewAcc).
 
 shift2(State, CurrentState, BumpedState) ->
@@ -331,6 +332,12 @@ shift2(State, CurrentState, BumpedState) ->
         State >  CurrentState -> bump(State, CurrentState, BumpedState);
         State =< CurrentState -> State
     end.
+
+shift_rec({#goto_EXT{}, Goto}, CS, BS) ->
+    NewGoto = shift2(Goto, CS, BS),
+    {#goto_EXT{goto = NewGoto}, NewGoto};
+shift_rec(Rec,  _, _) ->
+    Rec.
 
 bump(State, CurrentState, BumpedState) ->
     Diff = diff(CurrentState, BumpedState),
@@ -351,7 +358,7 @@ bump2([H1 | T1], [H2 | T2], Acc) ->
 diff(A, B) -> [A2 | A3]  = lists:reverse(state_to_num(A)),
               [B2 | _B3] = lists:reverse(state_to_num(B)),
               Len = length(A3),
-              lists:reverse([B2 - A2 | lists:duplicate(Len, 0)]).
+              lists:reverse([B2 - A2 - 1 | lists:duplicate(Len, 0)]).
 
 state_to_num(A) -> [list_to_integer(X) || X <- string:tokens(A, ".")].
 
