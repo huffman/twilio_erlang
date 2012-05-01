@@ -26,7 +26,7 @@ handle(Params, Path) ->
         "ringing" ->
             io:format("phone ringing...~n"),
             TwiML_ext = twiml_ext_recipies:random(),
-            phonecall_sup:answer_phone(Records, TwiML_ext);
+            phonecall_sup:init_call(Records, TwiML_ext);
         "completed" ->
             case Records#twilio.recording of
                 null ->

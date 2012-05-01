@@ -16,7 +16,7 @@
 %% API
 -export([
          start_link/0,
-         answer_phone/2,
+         init_call/2,
          call_complete/1,
          recording_notification/2,
          gather_response/1,
@@ -34,8 +34,8 @@
 %%%===================================================================
 %%% API functions
 %%%===================================================================
--spec answer_phone(#twilio{}, list()) -> pid() | string().
-answer_phone(Params, TwiML_EXT) ->
+-spec init_call(#twilio{}, list()) -> pid() | string().
+init_call(Params, TwiML_EXT) ->
     ChildSpec = gen_child_spec(Params, TwiML_EXT),
     case supervisor:start_child(?MODULE, ChildSpec) of
         {ok, Pid} ->
