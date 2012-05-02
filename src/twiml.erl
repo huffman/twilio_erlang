@@ -349,8 +349,10 @@ fix_up({xml, XML}) ->
            end,
     {xml, XML3}.
 
-print_html(_Element, _Rank) ->
-    ok.
+print_html(Element, Rank) ->
+    Ascii = print_ascii(Element, Rank),
+    HTML1 = re:replace(Ascii, " ", "\\&nbsp;", [global, {return, list}]),
+    re:replace(HTML1, "~n", "<br />", [global, {return, list}]).
 
 print_ascii(Element, Rank) ->
     Indent = trunc(((length(Rank) - 1)/2) * 4),
