@@ -1,4 +1,11 @@
 %% Twilio records
+-record(twilio_recording,
+        {
+          recording_sid,
+          recording_duration,
+          recording_url
+         }).
+
 -record(twilio_inprogress,
         {
           digits,
@@ -69,7 +76,8 @@
           from            = null,
           to              = null,
           call_duration   = null,
-          inprogress      = null
+          inprogress      = null,
+          recording       = null
          }).
 
 % Country Codes For Lookup
@@ -549,18 +557,3 @@
          {"Zimbabwe", "ZWE", 263},
          {"Zimbabwe", "ZW", 263}
         ]).
-
-% some definitions
--define(SMSLength, 160).
--define(SAYLength, 4000).
--define(SAYLanguages, [
-                       "en",
-                       "en-gb",
-                       "es",
-                       "fr",
-                       "de"
-                      ]).
--define(SAYVoices, [
-                    "man",
-                    "woman"
-                   ]).
