@@ -96,8 +96,8 @@ handle_call(Request, _From, State) ->
     {Reply, NewS}
         = case Request of
                {call_complete, Rec} ->
-                  % we do nothing, but you might want to squirrell away the
-                  % duration for bill purposes
+                  % we do nothing, but you might want to squirrel away the
+                  % duration for billing purposes
                   % apply the completion callback fns
                   [Fun(Rec, State) || {Event, Fun}
                                           <- State#state.eventcallbacks,
