@@ -160,7 +160,8 @@ compile(Elements, Type) when is_list(Elements) ->
     Return.
 
 compile(Elements, html, Rank) when is_list(Elements) ->
-    comp2(Elements, Rank, fun print_html/2);
+    {St , Table} = comp2(Elements, Rank, fun print_html/2),
+    {St, "<table>" ++ Table ++ "</table>"};
 compile(Elements, ascii, Rank) when is_list(Elements) ->
     comp2(Elements, Rank, fun print_ascii/2);
 compile(Elements, fsm, Rank) when is_list(Elements) ->
@@ -350,29 +351,29 @@ fix_up({xml, XML}) ->
     {xml, XML3}.
 
 print_html(Element, Rank) ->
-    Ascii = print_ascii(Element, Rank),
-    HTML1 = re:replace(Ascii, " ", "\\&nbsp;", [global, {return, list}]),
-    re:replace(HTML1, "~n", "<br />", [global, {return, list}]).
+    Indent = trunc(((length(Rank) - 1)/2) * 4),
+    print_2(Element, Rank, Indent, {"<tr><td>", "</td><td>", "</td></tr>"}, "", "").
 
 print_ascii(Element, Rank) ->
     Indent = trunc(((length(Rank) - 1)/2) * 4),
-    print_2(Element, Rank, Indent, "", "~n").
+    print_2(Element, Rank, Indent, {"", "", ""}, "", "~n").
 
 print_2(#say{text = T, voice = V, language = L}, Rank, Indent,
-        Prefix, Postfix) ->
-    io_lib:format("~s~s~s - SAY \"~s\" ~s ~s~s",
+        {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - SAY" ++ Mi ++ "\"~s\" ~s ~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, T, e(V), e(L), Postfix]);
-print_2(#play{url = U}, Rank, Indent, Prefix, Postfix) ->
-    io_lib:format("~s~s~s - PLAY ~s ~s",
+print_2(#play{url = U}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - PLAY" ++ Mi ++ "~s ~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, U, Postfix]);
-print_2(#gather{} = G, Rank, Indent, Prefix, Postfix) ->
+print_2(#gather{} = G, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
     Key = case G#gather.finishOnKey of
               undefined -> "";
               K         -> "(finish with: " ++ K ++ ")"
           end,
-    io_lib:format("~s~s~s - GATHER (request Keypad Input) ~s~s",
+    io_lib:format(Le ++ "~s~s~s - GATHER (request Keypad Input)" ++ Mi ++
+                  "~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, Key, Postfix]);
-print_2(#record{} = R, Rank, Indent, Prefix, Postfix) ->
+print_2(#record{} = R, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
     Beep = case R#record.playBeep of
                undefined -> "";
                false     -> "";
@@ -383,39 +384,39 @@ print_2(#record{} = R, Rank, Indent, Prefix, Postfix) ->
                      false     -> "";
                      true      -> "(transcribe)"
                  end,
-    io_lib:format("~s~s~s - RECORD ~s ~s~s",
+    io_lib:format(Le ++ "~s~s~s - RECORD" ++ Mi ++ "~s ~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, Beep, Transcribe, Postfix]);
-print_2(#number{number = N}, Rank, Indent, Prefix, Postfix) ->
-    io_lib:format("~s~s~s - NUMBER ~s~s",
+print_2(#number{number = N}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - NUMBER" ++ Mi ++ "~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, N, Postfix]);
-print_2(#dial{} = D, Rank, Indent, Prefix, Postfix) ->
+print_2(#dial{} = D, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
     Record = case D#dial.record of
                  undefined -> "";
                  false     -> "";
                  true      -> "(to be recorded)"
              end,
-    io_lib:format("~s~s~s - DIAL ~s~s",
+    io_lib:format(Le ++ "~s~s~s - DIAL" ++ Mi ++ "~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, Record, Postfix]);
-print_2(#sms{} = S, Rank, Indent, Prefix, Postfix) ->
-    io_lib:format("~s~s~s - SMS \"~s\" - to ~s~s",
+print_2(#sms{} = S, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - SMS" ++ Mi ++ "\"~s\" - to ~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, S#sms.text, S#sms.to, Postfix]);
-print_2(#pause{length = N}, Rank, Indent, Prefix, Postfix) ->
-    io_lib:format("~s~s~s - PAUSE for ~p seconds~s",
+print_2(#pause{length = N}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - PAUSE" ++ Mi ++ "for ~p seconds~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, N, Postfix]);
-print_2(#hangup{}, Rank, Indent, Prefix, Postfix) ->
-    io_lib:format("~s~s~s - HANGUP ~s",
+print_2(#hangup{}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - HANGUP" ++ Mi ++ "~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, Postfix]);
-print_2(#reject{reason = R}, Rank, Indent, Prefix, Postfix) ->
+print_2(#reject{reason = R}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
     R2 = case R of
              undefined -> "";
              _         -> "because " ++ R
          end,
-    io_lib:format("~s~s~s - REJECT ~s~s",
+    io_lib:format(Le ++ "~s~s~s - REJECT" ++ Mi ++ "~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, R2, Postfix]);
-print_2(#client{client = C}, Rank, Indent, Prefix, Postfix) ->
-    io_lib:format("~s~s~s - CLIENT ~s~s",
+print_2(#client{client = C}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - CLIENT" ++ Mi ++ "~s~s" + Ri,
                   [Prefix, pad(Indent), Rank, C, Postfix]);
-print_2(#conference{} = C, Rank, Indent, Prefix, Postfix) ->
+print_2(#conference{} = C, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
     Conf = C#conference.conference,
     Mute = case C#conference.muted of
                true -> "(caller can't speak)";
@@ -436,29 +437,29 @@ print_2(#conference{} = C, Rank, Indent, Prefix, Postfix) ->
               false     -> "";
               true      -> "(conf dies when this person leaves)"
           end,
-    io_lib:format("~s~s~s - CONFERENCE ~s ~s ~s ~s ~s~s",
+    io_lib:format(Le ++ "~s~s~s - CONFERENCE" ++ Mi ++ "~s ~s ~s ~s ~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, Conf, Mute, Beep, Role,
                    End, Postfix]);
 print_2(#response_EXT{response = R, title = T}, Rank, Indent,
-        Prefix, Postfix) ->
-    io_lib:format("~s~s~s - Response ~s : ~s  ~s",
+        {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - Response" ++ Mi ++ "~s : ~s  ~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, R, string:to_upper(T), Postfix]);
 print_2(#function_EXT{title = T, module = M, fn = F}, Rank, Indent,
-        Prefix, Postfix) ->
-    io_lib:format("~s~s~s - Call out to ~s (~s:~s)  ~s",
+        {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - Call out to" ++ Mi + "~s (~s:~s)  ~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, string:to_upper(T),
                    M, F, Postfix]);
-print_2(#default_EXT{title = T}, Rank, Indent, Prefix, Postfix) ->
-    io_lib:format("~s~s~s - Default : ~s  ~s",
+print_2(#default_EXT{title = T}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - Default :" ++ Mi ++ "~s  ~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, string:to_upper(T), Postfix]);
-print_2(#repeat_EXT{}, Rank, Indent, Prefix, Postfix) ->
-    io_lib:format("~s~s~s - REPEAT  ~s",
+print_2(#repeat_EXT{}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - REPEAT" ++ Mi ++ "~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, Postfix]);
-print_2(#goto_EXT{goto = G}, Rank, Indent, Prefix, Postfix) ->
-    io_lib:format("~s~s~s - GOTO ~s  ~s",
+print_2(#goto_EXT{goto = G}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
+    io_lib:format(Le ++ "~s~s~s - GOTO" ++ Mi ++ "~s  ~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, G, Postfix]);
-print_2(List, Rank, Indent, Prefix, Postfix) when is_list(List) ->
-    io_lib:format("~s~s~s - end of ~s (wait for response)~s",
+print_2(List, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) when is_list(List) ->
+    io_lib:format(Le ++ "~s~s~s - end of ~s" ++ Mi ++ "(wait for response)~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, List, Postfix]).
 
 pad(N) when is_integer(N) -> lists:flatten(lists:duplicate(N, " ")).
