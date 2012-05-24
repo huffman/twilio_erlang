@@ -18,10 +18,11 @@ start() ->
     start(?DEFAULT_PORT).
 
 %% @doc Starts a mochiweb HTTP server on the specified port.  Incoming
-%% requests will be  routed to the handling "twilio_rt_*" module.
+%% requests will be routed to the handling "twilio_rt_*" module.
 start(Port) ->
-    io:format("Starting mochiweb"),
-    mochiweb_http:start([{name, ?MODULE}, {port, Port}, {loop, {?MODULE, loop}}]).
+    io:format("Starting mochiweb bound to port ~p~n", [Port]),
+    mochiweb_http:start([{name, ?MODULE}, {port, Port},
+                         {loop, {?MODULE, loop}}]).
 
 %% @doc Mochiweb loop, handling incoming twilio requests.
 loop(Req) ->
@@ -31,10 +32,23 @@ loop(Req) ->
         'POST' ->
             Params = Req:parse_post()
     end,
-	"/" ++ Path = Req:get(path),
+    "/" ++ Path = Req:get(path),
     PathList = string:tokens(Path, "/"),
+
+    % TRADITIONAL TwiML
+    % uncomment this option to use traditional Twiml and
+    % manual routing
     XML = route(PathList, Params),
+
+    % EXTENDED TwiML
+    % uncomment this option to use Extended TwiML
+    % NOTE to use this option you will need to break out the state from
+    %      the path - it will be the last URL segment
+    %XML = twilio_ext:handle(Params, PathList),
+
+    % finally respond to Twilio
     Req:ok({"text/xml", XML}).
+
 
 %% @doc Routes a twilio request to a handler that will
 %% return a twiml XML document.

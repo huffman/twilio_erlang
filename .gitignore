@@ -1,0 +1,8 @@
+*#*#
+*.#*
+*.beam
+*.dump
+*~
+ebin/
+ebin/*.beam
+/deps
