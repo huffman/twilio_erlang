@@ -302,7 +302,7 @@ The signature of the external function is very straightforward:
 
 ```erlang
 external_function(_State) ->
-    {random(), [], {Type, Fun/2}.
+    {#twiml{}, [{Type, Fun/2}]}.
 ```
 
 where Type is one of the following atoms:
