@@ -60,9 +60,7 @@ prefix_to_country_code(Prefix) ->
 get_recording(#twilio{recording = R}) -> R#twilio_recording.recording_url.
 
 get_type(#twilio{called = null, caller = null, from = null,
-                 to = null, call_duration = null} = Tw) ->
-    io:format("Tw for start outbound not tightly specified~n-~p~n",
-              [Tw]),
+                 to = null, call_duration = null}) ->
     "start outbound";
 get_type(#twilio{direction = "inbound", call_status = "ringing",
                  called = C, caller = Cr, from = Fr, to = To,
