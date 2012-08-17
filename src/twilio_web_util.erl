@@ -41,8 +41,8 @@ prefix_to_country("00" ++ Prefix) ->
     prefix_to_country(Prefix);
 prefix_to_country("+" ++ Prefix) ->
     prefix_to_country(Prefix);
-prefix_to_country(Prefix) when is_integer(Prefix) ->
-    prefix_to_country(integer_to_list(Prefix));
+prefix_to_country(Prefix) when is_list(Prefix) ->
+    prefix_to_country(list_to_integer(Prefix));
 prefix_to_country(Prefix) ->
     {Country, _CC, Prefix} = lists:keyfind(Prefix, 3, ?CCLOOKUP),
     Country.
@@ -51,8 +51,8 @@ prefix_to_country_code("00" ++ Prefix) ->
     prefix_to_country_code(Prefix);
 prefix_to_country_code("+" ++ Prefix) ->
     prefix_to_country_code(Prefix);
-prefix_to_country_code(Prefix) when is_integer(Prefix) ->
-    prefix_to_country_code(integer_to_list(Prefix));
+prefix_to_country_code(Prefix) when is_list(Prefix) ->
+    prefix_to_country_code(list_to_integer(Prefix));
 prefix_to_country_code(Prefix) ->
     {_Country, CC, Prefix} = lists:keyfind(Prefix, 3, ?CCLOOKUP),
     CC.
@@ -69,7 +69,7 @@ get_type(#twilio{direction = "inbound", call_status = "ringing",
     "start inbound";
 get_type(#twilio{direction = "inbound", call_status = "in-progress",
                  called = C, caller = Cr, from = Fr, to = To,
-                call_duration = null, inprogress = Ip, recording = Rc} = Tw)
+                call_duration = null, inprogress = Ip, recording = Rc})
   when C =/= null andalso Cr =/= null andalso Fr =/= null andalso To =/= null
        andalso Ip =/= null andalso Rc =/= null ->
     "in-progress recording notification";
