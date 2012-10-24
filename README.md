@@ -161,7 +161,7 @@ called State is        "Edinburgh"
 (...)
 
 ```
-**NOTE** This work is not complete. the various Twilio parameters are being implemented gradually. Paramaters not currently handled are returned as a list in the field `#twilio.custom_params`. If you see parameters in that field consider adding clauses to the function `twilio_web_util:make_r/7` and adding information to the records in `twilio_web.hrl`.
+**NOTE** This work is not complete. the various Twilio parameters are being implemented gradually. Parameters not currently handled are returned as a list in the field `#twilio.custom_params`. If you see parameters in that field consider adding clauses to the function `twilio_web_util:make_r/7` and adding information to the records in `twilio_web.hrl`.
 
 Why Extended TwiML?
 ===================
