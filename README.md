@@ -350,10 +350,12 @@ Extended TwiML has the following api:
 
 ## Other Material
 
-Slides of a talk about Extended Twiml at the Erlang User Confernce 2012
+Slides of a talk about Extended Twiml at the Erlang User Conference 2012:
+
 http://www.docstoc.com/docs/document-preview.aspx?doc_id=128095466
 
-Presentation at TechMeetup in Glasgow
+Presentation at TechMeetup in Glasgow:
+
 http://vimeo.com/47162182
 
 License
