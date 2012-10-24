@@ -414,7 +414,7 @@ print_2(#reject{reason = R}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
     io_lib:format(Le ++ "~s~s~s - REJECT" ++ Mi ++ "~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, R2, Postfix]);
 print_2(#client{client = C}, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
-    io_lib:format(Le ++ "~s~s~s - CLIENT" ++ Mi ++ "~s~s" + Ri,
+    io_lib:format(Le ++ "~s~s~s - CLIENT" ++ Mi ++ "~s~s" ++ Ri,
                   [Prefix, pad(Indent), Rank, C, Postfix]);
 print_2(#conference{} = C, Rank, Indent, {Le, Mi, Ri}, Prefix, Postfix) ->
     Conf = C#conference.conference,

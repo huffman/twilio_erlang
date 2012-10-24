@@ -161,7 +161,7 @@ called State is        "Edinburgh"
 (...)
 
 ```
-**NOTE** This work is not complete. the various Twilio parameters are being implemented gradually. Paramaters not currently handled are returned as a list in the field `#twilio.custom_params`. If you see parameters in that field consider adding clauses to the function `twilio_web_util:make_r/7` and adding information to the records in `twilio_web.hrl`.
+**NOTE** This work is not complete. the various Twilio parameters are being implemented gradually. Parameters not currently handled are returned as a list in the field `#twilio.custom_params`. If you see parameters in that field consider adding clauses to the function `twilio_web_util:make_r/7` and adding information to the records in `twilio_web.hrl`.
 
 Why Extended TwiML?
 ===================
@@ -302,7 +302,7 @@ The signature of the external function is very straightforward:
 
 ```erlang
 external_function(_State) ->
-    {random(), [], {Type, Fun/2}.
+    {#twiml{}, [{Type, Fun/2}]}.
 ```
 
 where Type is one of the following atoms:
@@ -330,6 +330,14 @@ There are a number of steps to be gone through before using Extended TwiML:
 * Extended TwiML is commented out in ``twilio_web.hrl``- you will need to uncomment it
 * NOTE Extended TwiML (mostly) avoids you needing to build State Machines in URLs - with one exception. There is a ``#goto_EXT{}`` record which forces a goto on to Twilio - it tells Twilio to ask for a particular state of the FSM. If you have bound your application to ``http://example.com/some/page`` all the POST's will come to it - with the exception of GOTO's. If there is a record ``#goto_EXT{goto = "1.2.3"}`` the next twilio request will be to ``http://example.com/some/page/1.2.3`` The example in ``twilio_ext.hrl`` is set up for Twilio being bound to the root (ie ``http://example.com/``). It you bind it elsewhere you will need to handle those paths yourself.
 
+### Phonecall_srv.erl
+
+The phone call supervision tree has a phonecall supervisor which spawns a process for all phone calls. This behaves slightly differently for inbound and outbound phone calls.
+
+Inbound phone numbers **MUST** be set up with the callback status URL enabled in Twilio. This means that when a call is completed the application is notified by Twilio and the phonecall_srv can be sent a ``call complete`` message to terminate itself and clean up.
+
+Outbound calls **DO NOT** receive a ``call complete`` or ``recording`` message and must clean up after themselves. An outbound call receives allready 'knows' the URL of its recording - so the simplest way to clean up after an outbound call is just to do a ``call complete`` call on it immediately after serving up the TwiML that makes the call.
+
 ### Developers' Notes
 
 Extended TwiML has the following api:
@@ -339,6 +347,16 @@ Extended TwiML has the following api:
 * ``twiml:is_valid/1`` like ``validate/1`` except returns ``true`` or ``false``.
 * ``twiml:compile/1`` takes a list of TwiML records and compiles them to the FSM
 * ``twiml:compile/2`` takes a list of TwiML records and a atom which describes the compilation target - can be one of ``html``, ``ascii`` or ``fsm``
+
+## Other Material
+
+Slides of a talk about Extended Twiml at the Erlang User Conference 2012:
+
+http://www.docstoc.com/docs/document-preview.aspx?doc_id=128095466
+
+Presentation at TechMeetup in Glasgow:
+
+http://vimeo.com/47162182
 
 License
 =======

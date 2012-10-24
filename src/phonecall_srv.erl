@@ -11,9 +11,24 @@
 
 -behaviour(gen_server).
 
+-record(contact_log,
+        {
+          from     = [],
+          to       = [],
+          call_sid = [],
+          type     = []
+         }).
+
 %% API
 -export([
-         start_link/2
+         start_link/3
+        ]).
+
+% utilities for using state stuff
+-export([
+         get_log/1,
+         get_hypertag/1,
+         get_site/1
         ]).
 
 % export for tidying up
@@ -29,17 +44,14 @@
 
 -include("twilio.hrl").
 -include("twilio_web.hrl").
-
--record(state, {twiml_ext = null, initial_params = null, fsm = null,
-               currentstate = "1", history = [], eventcallbacks = []}).
+-include("phonecall_srv.hrl").
 
 %%%===================================================================
 %%% API
 %%%===================================================================
 delete_self(CallSID) ->
     ok = supervisor:terminate_child(phonecall_sup, CallSID),
-    ok = supervisor:delete_child(phonecall_sup, CallSID),
-    ok.
+    ok = supervisor:delete_child(phonecall_sup, CallSID).
 
 %%--------------------------------------------------------------------
 %% @doc
@@ -48,8 +60,8 @@ delete_self(CallSID) ->
 %% @spec start_link() -> {ok, Pid} | ignore | {error, Error}
 %% @end
 %%--------------------------------------------------------------------
-start_link(Params, TwiML) ->
-    gen_server:start_link(?MODULE, [Params, TwiML], []).
+start_link(Type, Params, TwiML) ->
+    gen_server:start_link(?MODULE, [Type, Params, TwiML], []).
 
 %%%===================================================================
 %%% gen_server callbacks
@@ -66,17 +78,22 @@ start_link(Params, TwiML) ->
 %%                     {stop, Reason}
 %% @end
 %%--------------------------------------------------------------------
-init([Params, TwiML_EXT]) ->
+init([Type, Params, TwiML_EXT]) ->
     FSM = case twiml:is_valid(TwiML_EXT) of
               false ->
+                  Resp = twiml:validate(TwiML_EXT),
+                  io:format("TwiML_EXT is ~p~n-~p~n", [TwiML_EXT, Resp]),
                   Tw = [#say{text = "sorry, this call has been setup "
                                   ++ "incorrectly"}],
                   orddict:from_list(twiml:compile(Tw));
-                   true ->
+              true ->
                   orddict:from_list(twiml:compile(TwiML_EXT))
           end,
-    {ok, #state{twiml_ext = TwiML_EXT, initial_params = Params,
-               fsm = FSM, history = [{init, now(), Params}]}}.
+    io:format("About to make log~n"),
+    Log = make_log(Type, Params),
+    io:format("Log is ~p~n", [Log]),
+    {ok, #pc_state{twiml_ext = TwiML_EXT, initial_params = Params,
+               log = Log, fsm = FSM, history = [{init, now(), Params}]}}.
 
 %%--------------------------------------------------------------------
 %% @private
@@ -99,27 +116,23 @@ handle_call(Request, _From, State) ->
                   % we do nothing, but you might want to squirrel away the
                   % duration for billing purposes
                   % apply the completion callback fns
-                  [Fun(Rec, State) || {Event, Fun}
-                                          <- State#state.eventcallbacks,
-                                      Event == completion],
+                  ok = run_callbacks(Rec, State, completion),
                   spawn(timer, apply_after, [1000, phonecall_srv,
                                              delete_self,
                                              [Rec#twilio.call_sid]]),
                   {ok, State};
-              {start_call, Rec} ->
-                  execute(State, {start_call, now(), Rec});
-              {recording_notification, Rec, _Path} ->
-                  io:format("Got details of a recording that has been made. "
-                            ++ "You should do something with it mebbies?~n"),
+              {start_call, _Type, Rec, Callbacks} ->
+                  {R, NS} = execute(State, {start_call, now(), Rec}),
+                  #pc_state{eventcallbacks = ECB} = NS,
+                  {R, NS#pc_state{eventcallbacks = lists:merge(ECB, Callbacks)}};
+              {recording_notification, Rec} ->
                   % apply the recording callback fns
-                  [Fun(Rec, State) || {Event, Fun}
-                                          <- State#state.eventcallbacks,
-                                      Event == recording],
+                  ok = run_callbacks(Rec, State, recording),
                   {ok, State};
               {gather_response, Rec} ->
                  respond(State, Rec);
               {goto_state, Rec, Goto} ->
-                  NewState = State#state{currentstate = Goto},
+                  NewState = State#pc_state{currentstate = Goto},
                   execute(NewState, {"goto " ++ Goto, now(), Rec});
               {Other, _Rec} ->
                    io:format("Got ~p call in phonecall_srv~n", [Other]),
@@ -182,20 +195,20 @@ code_change(_OldVsn, State, _Extra) ->
 %%% Internal functions
 %%%===================================================================
 execute(State, Action) ->
-    #state{history = Hist} = State,
+    #pc_state{history = Hist} = State,
     {NewCS, NewState, Msg} = exec2(next, State, Action, []),
     Reply = "<?xml version=\"1.0\"?><Response>"
         ++ lists:flatten(Msg) ++ "</Response>",
-    NewState2 = NewState#state{currentstate = NewCS,
+    NewState2 = NewState#pc_state{currentstate = NewCS,
                                history = [Action | Hist]},
     {Reply, NewState2}.
 
 exec2(wait, State, _Action, Acc) ->
-    #state{currentstate = CS} = State,
+    #pc_state{currentstate = CS} = State,
     Msg = lists:flatten(lists:reverse(Acc)),
     {CS, State, Msg};
 exec2(next, State, Action, Acc) ->
-    #state{currentstate = CS, fsm = FSM} = State,
+    #pc_state{currentstate = CS, fsm = FSM} = State,
     case orddict:find(CS, FSM) of
         error ->
             exit("invalid state in exec2");
@@ -206,7 +219,7 @@ exec2(next, State, Action, Acc) ->
         {ok, {{xml, X}, gather}} ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
                              fun twiml:unbump_on/1),
-            NewS = State#state{currentstate = NewCS},
+            NewS = State#pc_state{currentstate = NewCS},
             {_, Default} = get_next_default(NewS, Action, []),
             Reply = lists:reverse([Default, X | Acc]),
             {CS, State, Reply};
@@ -215,11 +228,11 @@ exec2(next, State, Action, Acc) ->
             {CS, State, Reply};
         {ok, {{xml, X}, next}} ->
             Next = get_next(CS, FSM, fun twiml:bump/1, fun twiml:unbump_on/1),
-            NewS = State#state{currentstate = Next},
+            NewS = State#pc_state{currentstate = Next},
             exec2(next, NewS, Action, [X | Acc]);
         {ok, {{xml, X}, into}} ->
             Into = get_next(CS, FSM, fun twiml:incr/1, fun twiml:bump/1),
-            NewS = State#state{currentstate = Into},
+            NewS = State#pc_state{currentstate = Into},
             exec2(next, NewS, Action, [X | Acc]);
         {ok, {#response_EXT{}, into}} ->
             InProg = Action#twilio.inprogress,
@@ -246,19 +259,19 @@ get_next(CS, FSM, Fun1, Fun2) ->
     end.
 
 respond(State, Rec) ->
-    #state{currentstate = CS, fsm = FSM} = State,
+    #pc_state{currentstate = CS, fsm = FSM} = State,
     case orddict:find(CS, FSM) of
         error ->
             exit("invalid state in respond");
         {ok, {_, Type}} when Type == wait orelse Type == gather ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
                              fun twiml:unbump_on/1),
-            NewS = State#state{currentstate = NewCS},
+            NewS = State#pc_state{currentstate = NewCS},
             execute(NewS, Rec)
     end.
 
 match(State, Action, D, Acc) ->
-    #state{currentstate = CS, fsm = FSM} = State,
+    #pc_state{currentstate = CS, fsm = FSM} = State,
     case orddict:find(CS, FSM) of
         error ->
             exit("invalid state in match");
@@ -266,24 +279,24 @@ match(State, Action, D, Acc) ->
             case D of
                 R -> NewCS = get_next(CS, FSM, fun twiml:incr/1,
                                       fun twiml:bump/1),
-                     NewS = State#state{currentstate = NewCS},
+                     NewS = State#pc_state{currentstate = NewCS},
                      exec2(next, NewS, Action, []);
                 _ -> NewCS = get_next(CS, FSM, fun twiml:bump/1,
                                       fun twiml:unbump_on/1),
-                     NewS = State#state{currentstate = NewCS},
+                     NewS = State#pc_state{currentstate = NewCS},
                      match(NewS, Action, D, Acc)
             end
     end.
 
 get_next_default(State, Action, Acc) ->
-    #state{currentstate = CS, fsm = FSM} = State,
+    #pc_state{currentstate = CS, fsm = FSM} = State,
     case orddict:find(CS, FSM) of
         error ->
             exit("invalid state in get_next_default");
         {ok, {#default_EXT{}, _}} ->
             NewCS = get_next(CS, FSM, fun twiml:incr/1,
                              fun twiml:bump/1),
-            NewS = State#state{currentstate = NewCS},
+            NewS = State#pc_state{currentstate = NewCS},
             {NewCS2, _NewState2, Msg} = exec2(next, NewS, Action, []),
             {NewCS2, Msg};
         {ok, {#goto_EXT{}, Goto}} ->
@@ -291,12 +304,12 @@ get_next_default(State, Action, Acc) ->
         _Other ->
             NewCS = get_next(CS, FSM, fun twiml:bump/1,
                              fun twiml:unbump_on/1),
-            NewS = State#state{currentstate = NewCS},
+            NewS = State#pc_state{currentstate = NewCS},
             get_next_default(NewS, Action, Acc)
     end.
 
 apply_function(Module, Function, State) ->
-    #state{currentstate = CS, fsm = FSM, history = History,
+    #pc_state{currentstate = CS, fsm = FSM, history = History,
           eventcallbacks = CBs} = State,
     NewHist = [{"calling " ++ to_list(Module) ++ ":" ++ to_list(Function)
                 ++ "/3"} | History],
@@ -306,8 +319,8 @@ apply_function(Module, Function, State) ->
     NewFSM2  = shift(NewFSM1, CS, BumpedState, []),
     NewFSM3  = store(NewCState, NewFSM2),
     NewCBs   = lists:merge(CBs, CBs2),
-    NewState = State#state{fsm = NewFSM3, history = NewHist,
-                           eventcallbacks = NewCBs},
+    NewState = State#pc_state{fsm = NewFSM3, history = NewHist,
+                              eventcallbacks = NewCBs},
     NewState.
 
 store([], Orddict)           -> Orddict;
@@ -362,3 +375,34 @@ diff(A, B) -> [A2 | A3]  = lists:reverse(state_to_num(A)),
 
 state_to_num(A) -> [list_to_integer(X) || X <- string:tokens(A, ".")].
 
+run_callbacks(Rec, State, Event) ->
+    Callbacks = State#pc_state.eventcallbacks,
+    [Fun(Rec, State) || {Ev, Fun} <- Callbacks, Ev == Event],
+    ok.
+
+make_log(Type, #twilio{} = Rec) ->
+    From = Rec#twilio.from,
+    To = Rec#twilio.to,
+    F1 = case From of
+             null -> "no from yet";
+             _    -> From#twilio_from.number
+         end,
+    T1 = case To of
+             null -> "no to yet";
+             _    -> To#twilio_to.number
+         end,
+    #contact_log{type = Type, call_sid = Rec#twilio.call_sid,
+                 from = F1, to = T1}.
+
+get_log(#pc_state{} = State) -> State#pc_state.log.
+
+get_hypertag(#pc_state{} = State) -> get_(State, "hypertag").
+
+get_site(#pc_state{} = State) -> get_(State, "site").
+
+get_(State, Key) ->
+    InitParam = State#pc_state.initial_params,
+    case proplists:lookup(Key, InitParam#twilio.custom_params) of
+        none       -> none;
+        {Key, Val} -> Val
+    end.
