@@ -11,6 +11,14 @@
 
 -behaviour(gen_server).
 
+-record(contact_log,
+        {
+          from     = [],
+          to       = [],
+          call_sid = [],
+          type     = []
+         }).
+
 %% API
 -export([
          start_link/3
@@ -36,7 +44,6 @@
 
 -include("twilio.hrl").
 -include("twilio_web.hrl").
--include("spriki.hrl").
 -include("phonecall_srv.hrl").
 
 %%%===================================================================
