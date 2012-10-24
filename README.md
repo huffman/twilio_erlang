@@ -348,6 +348,14 @@ Extended TwiML has the following api:
 * ``twiml:compile/1`` takes a list of TwiML records and compiles them to the FSM
 * ``twiml:compile/2`` takes a list of TwiML records and a atom which describes the compilation target - can be one of ``html``, ``ascii`` or ``fsm``
 
+## Other Material
+
+Slides of a talk about Extended Twiml at the Erlang User Confernce 2012
+http://www.docstoc.com/docs/document-preview.aspx?doc_id=128095466
+
+Presentation at TechMeetup in Glasgow
+http://vimeo.com/47162182
+
 License
 =======
 
