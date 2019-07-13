@@ -959,8 +959,6 @@ validate_test_() ->
      ?_assertEqual(false, is_valid([#gather{body = [#play{}, #say{},
                                                     #pause{}]}])),
 
-     ?_assertEqual("can you have finish_on_key and num_digits?",
-                   "dinnae ken"),
      % RECORD passing
      ?_assertEqual(true, is_valid([#record{}])),
      ?_assertEqual(true, is_valid([#record{method = "Post"}])),
@@ -1171,6 +1169,9 @@ proper_gather_test_() ->
      ?_assertEqual(true, is_valid([#gather{finishOnKey = "*",
                                            after_EXT = [RESPONSE]}])),
      ?_assertEqual(true, is_valid([#gather{numDigits = 1,
+                                           after_EXT = [RESPONSE]}])),
+     ?_assertEqual(true, is_valid([#gather{numDigits = 1,
+                                           finishOnKey = "*",
                                            after_EXT = [RESPONSE]}])),
      ?_assertEqual(true, is_valid([#gather{body = [#play{}, #say{},
                                                    #pause{}],
